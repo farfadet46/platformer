@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ultimate Platformer Studio Pro - Restauration</title>
+    <style>
+        :root { --accent: #ff0055; --bg: #0d0d12; --panel: #16161e; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        
+        #editor-ui { width: 300px; background: var(--panel); display: flex; flex-direction: column; border-right: 2px solid #222; z-index: 10; }
+        .section { padding: 20px; border-bottom: 1px solid #333; }
+        .palette { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+        .tile-opt { width: 50px; height: 50px; background: #222; border: 2px solid #444; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: 0.2s; }
+        .tile-opt:hover { border-color: var(--accent); }
+        .tile-opt.active { border-color: var(--accent); background: #333; box-shadow: 0 0 10px var(--accent); }
+
+        #game-container { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #1a1a2e 0%, #0d0d12 100%); }
+        canvas { background: transparent; box-shadow: 0 0 40px rgba(0,0,0,0.5); image-rendering: pixelated; }
+        
+        #play-btn { background: var(--accent); color: white; border: none; padding: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1.1em; margin-bottom: 5px; }
+        #play-btn.playing { background: #00ff88; color: #000; }
+        
+        .file-ops { display: flex; gap: 10px; margin-top: 10px; }
+        .file-btn { flex: 1; background: #333; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
+        .file-btn:hover { background: #444; border-color: #666; }
+
+        .hint { font-size: 0.8em; color: #888; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="editor-ui">
+    <div class="section">
+        <h2 style="margin:0">Studio Pro</h2>
+        <div class="hint">Version Restaurée & Stable</div>
+    </div>
+    
+    <div class="section">
+        <button id="play-btn">▶ TESTER LE NIVEAU</button>
+        <div class="hint">Appuyez sur <b>ENTRÉE</b></div>
+    </div>
+
+    <div class="section">
+        <label>Palette :</label>
+        <div class="palette">
+            <div class="tile-opt active" data-id="#" title="Mur">🧱</div>
+            <div class="tile-opt" data-id="." title="Gomme">🧼</div>
+            <div class="tile-opt" data-id="^" title="Pic">🔺</div>
+            <div class="tile-opt" data-id="C" title="Pièce">🟡</div>
+            <div class="tile-opt" data-id="E" title="Ennemi">👾</div>
+            <div class="tile-opt" data-id="P" title="Joueur">🏃</div>
+            <div class="tile-opt" data-id="F" title="Drapeau">🚩</div>
+        </div>
+    </div>
+
+    <div class="section" style="flex:1; display:flex; flex-direction:column;">
+        <label>Code Source :</label>
+        <textarea id="level-out" style="width:100%; flex:1; background:#000; color:#0f0; font-family:monospace; border:none; padding:10px; margin-top:10px; font-size:10px; resize:none;" readonly></textarea>
+        
+        <div class="file-ops">
+            <button class="file-btn" onclick="saveMap()">💾 ENREGISTRER</button>
+            <button class="file-btn" onclick="loadMap()">📁 CHARGER</button>
+        </div>
+        <input type="file" id="file-input" style="display:none" accept=".txt">
+    </div>
+</div>
+
+<div id="game-container">
+    <canvas id="c"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
+    const playBtn = document.getElementById('play-btn'), levelOut = document.getElementById('level-out');
+    
+    const TILE = 40, ROWS = 15, COLS = 25;
+    canvas.width = COLS * TILE; canvas.height = ROWS * TILE;
+
+    let map = Array(ROWS).fill().map(() => Array(COLS).fill('.'));
+    let currentTile = '#', isPlaying = false;
+    let score = 0, timer = "0.00", startTime = 0;
+    let lastTime = performance.now();
+    
+    let p = { x: 0, y: 0, vx: 0, vy: 0, w: 28, h: 36, ground: false };
+    let inputs = {};
+
+    function saveMap() {
+        const blob = new Blob([levelOut.value], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'mon_niveau.txt'; a.click();
+    }
+
+    function loadMap() { document.getElementById('file-input').click(); }
+
+    document.getElementById('file-input').onchange = (e) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => { levelOut.value = ev.target.result; loadLevelFromSource(); };
+        reader.readAsText(e.target.files[0]);
+    };
+
+    const loadLevelFromSource = () => {
+        const lines = levelOut.value.trim().split('\n');
+        if (lines.length >= ROWS) map = lines.slice(0, ROWS).map(l => l.split('').slice(0, COLS));
+    };
+
+    const drawTile = (t, x, y) => {
+        let px = x * TILE, py = y * TILE;
+        if (t === '#') { ctx.fillStyle = '#2d3436'; ctx.fillRect(px, py, TILE, TILE); ctx.strokeStyle="#111"; ctx.strokeRect(px,py,TILE,TILE); }
+        if (t === '^') { ctx.fillStyle = '#ff4757'; ctx.beginPath(); ctx.moveTo(px+5, py+TILE); ctx.lineTo(px+20, py+5); ctx.lineTo(px+35, py+TILE); ctx.fill(); }
+        if (t === 'C') { ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.arc(px+20, py+20, 8, 0, 7); ctx.fill(); }
+        if (t === 'E') { ctx.fillStyle = '#a29bfe'; ctx.fillRect(px+8, py+12, 24, 28); }
+        if (t === 'P' && !isPlaying) { ctx.strokeStyle = '#00ff88'; ctx.strokeRect(px+5, py+5, TILE-10, TILE-10); }
+        if (t === 'F') { ctx.fillStyle = '#2ecc71'; ctx.fillRect(px+10, py+5, 4, TILE-5); ctx.fillRect(px+14, py+5, 20, 15); }
+    };
+
+    const collide = (nx, ny) => {
+        let x1 = Math.floor(nx/TILE), x2 = Math.floor((nx+p.w)/TILE);
+        let y1 = Math.floor(ny/TILE), y2 = Math.floor((ny+p.h)/TILE);
+        for(let i=y1; i<=y2; i++) for(let j=x1; j<=x2; j++)
+            if(map[i] && map[i][j] === '#') return true;
+        return false;
+    };
+
+    const checkTriggers = () => {
+        let tx = Math.floor((p.x + p.w/2) / TILE);
+        let ty = Math.floor((p.y + p.h/2) / TILE);
+        if (map[ty] && map[ty][tx]) {
+            let tile = map[ty][tx];
+            if (tile === '^' || tile === 'E') reset();
+            if (tile === 'C') { map[ty][tx] = '.'; score++; }
+            if (tile === 'F') { alert(`VICTOIRE ! Score: ${score}`); togglePlay(); }
+        }
+        if (p.y > canvas.height) reset();
+    };
+
+    const reset = () => {
+        loadLevelFromSource();
+        let found = false;
+        map.forEach((r, y) => r.forEach((cell, x) => { if(cell === 'P') { p.x = x*TILE+6; p.y = y*TILE; found=true; } }));
+        if(!found) { p.x = TILE; p.y = TILE; }
+        p.vx = p.vy = 0; score = 0;
+    };
+
+    const loop = (timestamp) => {
+        let dt = Math.min((timestamp - lastTime) / 16.66, 2);
+        lastTime = timestamp;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        map.forEach((r, y) => r.forEach((t, x) => drawTile(t, x, y)));
+
+        if (isPlaying) {
+            timer = ((Date.now() - startTime) / 1000).toFixed(2);
+            if (inputs['ArrowLeft']) p.vx -= 1.2 * dt;
+            if (inputs['ArrowRight']) p.vx += 1.2 * dt;
+            p.vx *= Math.pow(0.8, dt); p.vy += 0.8 * dt;
+
+            p.x += p.vx * dt;
+            if (collide(p.x, p.y)) { p.x -= p.vx * dt; p.vx = 0; }
+            p.y += p.vy * dt; p.ground = false;
+            if (collide(p.x, p.y)) {
+                if(p.vy > 0) p.ground = true;
+                p.y -= p.vy * dt; p.vy = 0;
+            }
+            if (inputs['ArrowUp'] && p.ground) p.vy = -14;
+            checkTriggers();
+            ctx.fillStyle = '#00ff88';
+            ctx.fillRect(p.x, p.y, p.w, p.h);
+        }
+        
+        drawHUD();
+        requestAnimationFrame(loop);
+    };
+
+    const drawHUD = () => {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; ctx.fillRect(0, 0, canvas.width, 40);
+        ctx.fillStyle = "white"; ctx.font = "bold 16px sans-serif";
+        ctx.fillText(`🟡 PIÈCES : ${score}`, 20, 25);
+        ctx.fillText(`⏱️ TEMPS : ${timer}s`, canvas.width - 150, 25);
+    };
+
+    const togglePlay = () => {
+        if (!isPlaying) {
+            if (!levelOut.value.includes('P') || !levelOut.value.includes('F')) return alert("Il manque le joueur ou le drapeau !");
+            startTime = Date.now(); reset();
+        } else { loadLevelFromSource(); }
+        isPlaying = !isPlaying;
+        playBtn.innerText = isPlaying ? "⏹ ARRÊTER" : "▶ TESTER";
+    };
+
+    canvas.onmousedown = (e) => { canvas.isDrawing = true; edit(e); };
+    window.onmouseup = () => canvas.isDrawing = false;
+    canvas.onmousemove = (e) => { if(canvas.isDrawing) edit(e); };
+    function edit(e) {
+        if (isPlaying) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = Math.floor((e.clientX - rect.left) / TILE), y = Math.floor((e.clientY - rect.top) / TILE);
+        if (y >= 0 && y < ROWS && x >= 0 && x < COLS) {
+            if (currentTile === 'P') map.forEach(r => r.forEach((c,i) => { if(c==='P') r[i]='.'; }));
+            map[y][x] = currentTile;
+            levelOut.value = map.map(r => r.join('')).join('\n');
+        }
+    }
+
+    document.querySelectorAll('.tile-opt').forEach(opt => opt.onclick = () => {
+        document.querySelector('.tile-opt.active').classList.remove('active');
+        opt.classList.add('active'); currentTile = opt.dataset.id;
+    });
+
+    playBtn.onclick = togglePlay;
+    window.onkeydown = (e) => { inputs[e.code] = true; if(e.code==='Enter') togglePlay(); };
+    window.onkeyup = (e) => inputs[e.code] = false;
+    levelOut.value = map.map(r => r.join('')).join('\n');
+    requestAnimationFrame(loop);
+</script>
+</body>
+</html>
