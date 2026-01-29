@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Platformer Studio v0.3c - Fixed</title>
+    <title>Platformer Studio v0.5 - Multi-Level Progression</title>
     <style>
         :root { --accent: #ff0055; --bg: #0d0d12; --panel: #16161e; --success: #00ff88; --selected: #ffaa00; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
@@ -60,6 +60,54 @@
             -webkit-user-select: auto !important;
         }
         #level-out { user-select: text; -webkit-user-select: text; }
+        
+        /* Indicateur de progression */
+        #level-progress {
+            background: #1e1e2e;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-top: 10px;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        #level-progress button {
+            transition: all 0.2s;
+        }
+        
+        #level-progress button:hover:not(:disabled) {
+            background: #444;
+            border-color: #777;
+            transform: scale(1.05);
+        }
+        
+        #level-progress button:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+        
+        #level-progress .current-level {
+            font-weight: bold;
+            color: var(--accent);
+            font-size: 1.1em;
+        }
+        
+        #level-progress .progress-bar {
+            flex: 1;
+            margin: 0 15px;
+            height: 8px;
+            background: #0d0d12;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        #level-progress .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--success));
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
         
         /* Popup de gestion des niveaux */
         #level-manager-overlay {
@@ -183,6 +231,11 @@
             border-color: #ff0055;
         }
         
+        .rename-level-btn:hover {
+            color: var(--accent) !important;
+            transform: scale(1.1);
+        }
+        
         .level-manager-controls {
             display: flex;
             gap: 10px;
@@ -213,7 +266,173 @@
         .level-manager-btn.secondary:hover {
             background: #444;
         }
-    
+        
+        /* Popup de victoire */
+        #victory-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        #victory-overlay.visible { display: flex; }
+        
+        #victory-popup {
+            background: linear-gradient(135deg, #1e1e2e 0%, #2d1e3e 100%);
+            border: 3px solid var(--success);
+            border-radius: 20px;
+            padding: 50px;
+            text-align: center;
+            box-shadow: 0 20px 80px rgba(0, 255, 136, 0.4);
+            animation: victoryBounce 0.6s ease;
+            max-width: 500px;
+        }
+        
+        @keyframes victoryBounce {
+            0% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+            50% { transform: scale(1.1) rotate(5deg); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        
+        #victory-popup h1 {
+            font-size: 3em;
+            margin: 0 0 20px 0;
+            color: var(--success);
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
+            50% { text-shadow: 0 0 40px rgba(0, 255, 136, 0.8), 0 0 60px rgba(0, 255, 136, 0.6); }
+        }
+        
+        .victory-stats {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        
+        .victory-stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 1.2em;
+        }
+        
+        .victory-stat:last-child {
+            border-bottom: none;
+        }
+        
+        .victory-stat-label {
+            color: #aaa;
+        }
+        
+        .victory-stat-value {
+            color: var(--success);
+            font-weight: bold;
+            font-size: 1.3em;
+        }
+        
+        .victory-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .victory-btn {
+            flex: 1;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        
+        .victory-btn.next {
+            background: var(--success);
+            color: #000;
+        }
+        
+        .victory-btn.next:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.4);
+        }
+        
+        .victory-btn.restart {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .victory-btn.restart:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(255, 0, 85, 0.4);
+        }
+        
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            top: -20px;
+            background: var(--success);
+            position: absolute;
+            animation: confetti-fall 3s linear;
+        }
+        
+        @keyframes confetti-fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        /* Style des notifications Toast */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        .toast {
+            background: var(--panel);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+            min-width: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideIn 0.3s ease-out forwards;
+            font-size: 14px;
+        }
+
+        .toast.success { border-left-color: var(--success); }
+        .toast.warning { border-left-color: var(--selected); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            to { transform: translateX(20px); opacity: 0; }
+        }
     </style>
 </head>
 <body>
@@ -221,12 +440,27 @@
 <div id="editor-ui">
     <div class="section">
         <h2 style="margin:0">Platformer Studio</h2>
-        <div class="hint">Version 0.3b - Fixed</div>
+        <div class="hint">2026.01.29 V0.5</div>
     </div>
     
     <div class="section">
         <button id="play-btn">▶ TESTER LE NIVEAU</button>
         <button id="level-manager-btn" style="background: #333; color: white; border: none; padding: 12px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1em; margin-top: 10px; transition: 0.2s;">🗂️ GESTION DES NIVEAUX</button>
+        
+        <div id="level-progress">
+            <button id="prev-level-btn" style="background: #333; border: 1px solid #555; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s;" title="Niveau précédent">◀</button>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; margin: 0 10px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div class="current-level" id="current-level-name">Niveau 1</div>
+                    <div style="color: #888; font-size: 0.9em;"><span id="completed-levels">0</span>/<span id="total-levels">1</span></div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+            <button id="next-level-btn-edit" style="background: #333; border: 1px solid #555; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s;" title="Niveau suivant">▶</button>
+        </div>
+        
         <div class="hint">1. Cliquez sur un ennemi 2. Réglez les sliders 3. Cliquez OK</div>
     </div>
 
@@ -268,16 +502,13 @@
         </div>
     </div>
 
-    <div class="section" style="flex:1; display:flex; flex-direction:column;">
-        <label>JSON :</label>
-        <textarea id="level-out" style="width:100%; flex:1; background:#000; color:#0f0; font-family:monospace; border:none; padding:10px; margin-top:10px; font-size:10px; resize:none;" readonly></textarea>
-    
-        
+    <div class="section">
         <div class="file-ops">
             <button class="file-btn" onclick="saveMap()">💾 SAVE</button>
             <button class="file-btn" onclick="loadMap()">📁 LOAD</button>
         </div>
         <input type="file" id="file-input" style="display:none" accept=".json,.txt">
+        <div class="hint" style="margin-top: 10px;">Sauvegarde/chargement du projet complet</div>
     </div>
 </div>
 
@@ -299,15 +530,52 @@
         </div>
         
         <div class="level-manager-controls">
+            <button class="level-manager-btn" id="export-project-btn" style="background: #2ecc71;">💾 Sauvegarder projet</button>
+        </div>
+        
+        <div class="level-manager-controls">
+            <button class="level-manager-btn" id="export-game-btn" style="background: #3498db;">🎮 Exporter le jeu</button>
+        </div>
+        
+        <div class="level-manager-controls">
             <button class="level-manager-btn secondary" id="close-level-manager-btn">✕ Fermer</button>
         </div>
     </div>
 </div>
 
+<!-- Popup de victoire -->
+<div id="victory-overlay">
+    <div id="victory-popup">
+        <h1 id="victory-title">🎉 NIVEAU TERMINÉ !</h1>
+        
+        <div class="victory-stats">
+            <div class="victory-stat">
+                <span class="victory-stat-label">🟡 Pièces collectées</span>
+                <span class="victory-stat-value"><span id="victory-score">0</span>/<span id="victory-total">0</span></span>
+            </div>
+            <div class="victory-stat">
+                <span class="victory-stat-label">⏱️ Temps</span>
+                <span class="victory-stat-value" id="victory-time">0.00s</span>
+            </div>
+            <div class="victory-stat">
+                <span class="victory-stat-label">📊 Progression</span>
+                <span class="victory-stat-value" id="victory-progress">0/0</span>
+            </div>
+        </div>
+        
+        <div class="victory-buttons">
+            <button class="victory-btn restart" id="restart-level-btn">🔄 Recommencer</button>
+            <button class="victory-btn next" id="next-level-btn">➡️ Niveau suivant</button>
+        </div>
+    </div>
+</div>
+<div id="toast-container"></div>
+
 <script>
     const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
-    const playBtn = document.getElementById('play-btn'), levelOut = document.getElementById('level-out');
+    const playBtn = document.getElementById('play-btn');
     const enemyPanel = document.getElementById('enemy-panel');
+    const victoryOverlay = document.getElementById('victory-overlay');
     
     const TILE = 40, ROWS = 15, COLS = 25;
     canvas.width = COLS * TILE; canvas.height = ROWS * TILE;
@@ -315,8 +583,9 @@
     let map = Array(ROWS).fill().map(() => Array(COLS).fill('.'));
     let currentTile = '#', isPlaying = false;
     let score = 0, timer = "0.00", startTime = 0;
+    let totalCoins = 0; // Nombre total de pièces dans le niveau
     let lastTime = performance.now();
-    let lastLogTime = 0; // Pour limiter les logs dans la loop
+    let completedLevelsCount = 0; // Nombre de niveaux terminés dans la session de jeu
     
     // Système multi-niveaux
     let levels = [
@@ -328,6 +597,7 @@
         }
     ];
     let currentLevelIndex = 0;
+    let playStartLevelIndex = 0; // Niveau de départ quand on clique sur PLAY
     
     let p = { x: 0, y: 0, vx: 0, vy: 0, w: 28, h: 36, ground: false };
     let inputs = {};
@@ -344,66 +614,70 @@
     const rangeVal = document.getElementById('range-val');
     const applyBtn = document.getElementById('apply-btn');
 
-    // Mise à jour des labels avec debug
+    const showNotification = (message, type = 'default') => {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        let icon = "🔔";
+        if(type === 'success') icon = "✅";
+        if(type === 'warning') icon = "⚠️";
+
+        toast.innerHTML = `<span>${icon} &nbsp; ${message}</span>`;
+        
+        container.appendChild(toast);
+
+        // Supprimer après 3 secondes
+        setTimeout(() => {
+            toast.style.animation = "fadeOut 0.3s ease-in forwards";
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+
+    // EXEMPLE DE REMPLACEMENT :
+    // Au lieu de : alert("Il manque P ou F !");
+    // Utilise : showNotification("Il manque le départ (P) ou la fin (F) !", "warning");
+
+    // Mise à jour des labels
     speedInput.oninput = function(e) {
-        console.log('🎚️ SPEED oninput déclenché:', this.value);
         speedVal.textContent = parseFloat(this.value).toFixed(1);
-        e.stopPropagation(); // Empêcher la propagation
+        e.stopPropagation();
     };
     
     rangeInput.oninput = function(e) {
-        console.log('🎚️ RANGE oninput déclenché:', this.value);
         rangeVal.textContent = this.value;
-        e.stopPropagation(); // Empêcher la propagation
+        e.stopPropagation();
     };
     
     dirInput.onchange = function(e) {
-        console.log('🎚️ DIRECTION changée:', this.value);
-        e.stopPropagation(); // Empêcher la propagation
+        e.stopPropagation();
     };
 
     // Charger les valeurs d'un ennemi dans les sliders
     function loadEnemyToUI(key) {
-        console.log('📥 loadEnemyToUI appelée pour:', key);
-        console.log('📦 Données actuelles enemyData[key]:', enemyData[key]);
-        
         const data = enemyData[key];
         if (!data) {
-            console.log('⚠️ Pas de données, utilisation des valeurs par défaut');
             speedInput.value = 2;
             rangeInput.value = 3;
             dirInput.value = 1;
         } else {
-            console.log('✅ Chargement des valeurs:', data);
             speedInput.value = parseFloat(data.speed) || 2;
             rangeInput.value = parseInt(data.range) || 3;
             dirInput.value = parseInt(data.dir) || 1;
         }
         speedVal.textContent = parseFloat(speedInput.value).toFixed(1);
         rangeVal.textContent = rangeInput.value;
-        
-        console.log('🎯 Sliders mis à jour - Speed:', speedInput.value, 'Range:', rangeInput.value, 'Dir:', dirInput.value);
     }
 
     // Bouton OK - Sauvegarde explicite
     applyBtn.onclick = function() {
-        console.log('💾 Bouton APPLIQUER cliqué');
-        console.log('🎯 selectedEnemyPos:', selectedEnemyPos);
-        
-        if (!selectedEnemyPos) {
-            console.log('❌ Aucun ennemi sélectionné');
-            return;
-        }
+        if (!selectedEnemyPos) return;
         
         const speed = parseFloat(speedInput.value);
         const range = parseInt(rangeInput.value);
         const dir = parseInt(dirInput.value);
         
-        console.log('📊 Valeurs à sauvegarder - Speed:', speed, 'Range:', range, 'Dir:', dir);
-        
         enemyData[selectedEnemyPos] = { speed, range, dir };
-        
-        console.log('✅ Données sauvegardées dans enemyData:', enemyData);
         
         const originalText = this.textContent;
         this.textContent = "✓ SAUVEGARDÉ !";
@@ -427,7 +701,7 @@
     }
 
     function saveMap() {
-        saveCurrentLevel(); // Sauvegarder le niveau actuel avant l'export
+        saveCurrentLevel();
         const data = { 
             levels: levels,
             currentLevelIndex: currentLevelIndex,
@@ -438,7 +712,6 @@
         const a = document.createElement('a');
         a.href = url; a.download = 'platformer-project.json'; a.click();
         URL.revokeObjectURL(url);
-        console.log('💾 Projet sauvegardé avec', levels.length, 'niveaux');
     }
 
     function loadMap() { document.getElementById('file-input').click(); }
@@ -449,9 +722,7 @@
             try {
                 const data = JSON.parse(ev.target.result);
                 
-                // Rétrocompatibilité avec l'ancien format (version 0.3b)
                 if (data.map && !data.levels) {
-                    console.log('📥 Ancien format détecté, conversion...');
                     levels = [{
                         id: 1,
                         name: "Niveau importé",
@@ -460,12 +731,9 @@
                     }];
                     currentLevelIndex = 0;
                 } else if (data.levels) {
-                    // Nouveau format multi-niveaux
-                    console.log('📥 Nouveau format détecté');
                     levels = data.levels;
                     currentLevelIndex = data.currentLevelIndex || 0;
                     
-                    // Vérifier que l'index est valide
                     if (currentLevelIndex >= levels.length) {
                         currentLevelIndex = 0;
                     }
@@ -474,28 +742,22 @@
                 }
                 
                 loadCurrentLevel();
-                console.log('✅ Projet chargé avec', levels.length, 'niveau(x)');
+                updateProgressUI();
                 
             } catch(err) {
-                console.error('❌ Erreur de chargement:', err);
-                alert("Erreur de chargement du fichier");
+                showNotification("Erreur de chargement du fichier", "warning");
             }
         };
         reader.readAsText(e.target.files[0]);
     };
 
     const initEnemies = () => {
-        console.log('👾 initEnemies appelée');
-        console.log('🗺️ Map actuelle:', map);
-        console.log('📦 enemyData actuelle:', enemyData);
-        
         activeEnemies = [];
         map.forEach((r, y) => {
             r.forEach((cell, x) => {
                 if (cell === 'E') {
                     const key = `${x},${y}`;
                     const params = getEnemyParams(key);
-                    console.log(`➕ Ennemi trouvé en (${x},${y}) avec params:`, params);
                     
                     activeEnemies.push({
                         x: x * TILE, 
@@ -512,8 +774,6 @@
                 }
             });
         });
-        
-        console.log('✅ Ennemis actifs créés:', activeEnemies.length, activeEnemies);
     };
 
     const updateEnemies = (dt) => {
@@ -611,12 +871,7 @@
             if (tile === '^') reset();
             if (tile === 'C') { map[ty][tx] = '.'; score++; }
             if (tile === 'F') { 
-                setTimeout(() => {
-                    if(isPlaying) {
-                        alert(`VICTOIRE !\nScore: ${score}\nTemps: ${timer}s`); 
-                        togglePlay(); 
-                    }
-                }, 100);
+                showVictoryScreen();
             }
         }
         if (checkEnemyPlayerCollision()) reset();
@@ -624,31 +879,31 @@
     };
 
     const reset = () => {
-        console.log('🔄 Reset appelé - isPlaying:', isPlaying);
-        
         let found = false;
         map.forEach((r, y) => r.forEach((cell, x) => { 
             if(cell === 'P') { 
                 p.x = x*TILE+6; 
                 p.y = y*TILE; 
                 found=true;
-                console.log('🏃 Joueur placé en:', p.x, p.y);
             } 
         }));
         if(!found) { 
             p.x = TILE; 
             p.y = TILE;
-            console.log('⚠️ Pas de P trouvé, position par défaut');
         }
         p.vx = p.vy = 0; 
         score = 0;
+        
+        // Compter le nombre total de pièces dans le niveau
+        totalCoins = 0;
+        map.forEach((r) => r.forEach((cell) => { 
+            if(cell === 'C') totalCoins++; 
+        }));
+        
         startTime = Date.now();
         
         if(isPlaying) {
-            console.log('🎮 Mode jeu actif - Initialisation des ennemis');
             initEnemies();
-        } else {
-            console.log('✏️ Mode édition - Pas d\'init ennemis');
         }
     };
 
@@ -662,12 +917,6 @@
         if (isPlaying) {
             timer = ((Date.now() - startTime) / 1000).toFixed(2);
             updateEnemies(dt);
-            
-            // Log seulement 1x par seconde pour éviter le spam
-            if (Date.now() - lastLogTime > 1000) {
-                console.log('🎮 Frame - activeEnemies.length:', activeEnemies.length);
-                lastLogTime = Date.now();
-            }
             
             activeEnemies.forEach(enemy => {
                 ctx.fillStyle = enemy.color;
@@ -703,79 +952,171 @@
         ctx.fillRect(0, 0, canvas.width, 40);
         ctx.fillStyle = "white"; 
         ctx.font = "bold 16px sans-serif";
-        ctx.fillText(`🟡 ${score}`, 20, 25);
+        ctx.fillText(`🟡 ${score}/${totalCoins}`, 20, 25);
         ctx.fillText(`⏱️ ${timer}s`, canvas.width - 100, 25);
         
         requestAnimationFrame(loop);
     };
 
     const togglePlay = () => {
-        console.log('🎮 togglePlay - isPlaying avant:', isPlaying);
-        
         if (!isPlaying) {
-            if (!JSON.stringify(map).includes('P') || !JSON.stringify(map).includes('F')) {
-                console.log('❌ Manque P ou F');
-                return alert("Il manque P ou F !");
+            if (!JSON.stringify(map).includes('P') && !JSON.stringify(map).includes('F')) {
+                return showNotification("Le joueur et le drapeau sont absent de la map !", "warning");
             }
-            console.log('▶️ Démarrage du jeu');
+            if (!JSON.stringify(map).includes('P')) {
+                return showNotification("Veuillez insérer un joueur sur la map !", "warning");
+            }
+            if (!JSON.stringify(map).includes('F')) {
+                return showNotification("Veuillez insérer un drapeau sur la map !", "warning");
+            }
             
-            // IMPORTANT : Mettre isPlaying à true AVANT reset() !
+            saveCurrentLevel();
+            //loadCurrentLevel();
+
             isPlaying = true;
+            playStartLevelIndex = currentLevelIndex;
+            completedLevelsCount = 0;
             reset();
         } else {
-            console.log('⏹️ Arrêt du jeu');
             isPlaying = false;
             activeEnemies = [];
+            loadCurrentLevel();
         }
         
         playBtn.textContent = isPlaying ? "⏹ STOP" : "▶ TEST";
         playBtn.classList.toggle('playing', isPlaying);
+    };
+    
+    // Variable globale pour stocker le score de victoire
+    let victoryScore = 0;
+    
+    // Écran de victoire avec confettis
+    function showVictoryScreen() {
+        if (!isPlaying) return;
         
-        console.log('🎮 isPlaying après:', isPlaying);
+        // IMPORTANT : Arrêter le jeu immédiatement
+        const wasPlaying = isPlaying;
+        isPlaying = false;
+        
+        victoryScore = score;
+        const currentTime = timer;
+        const currentTotal = totalCoins;
+        
+        completedLevelsCount++;
+        
+        // Créer des confettis
+        createConfetti();
+        
+        // Afficher le popup après un court délai
+        setTimeout(() => {
+            document.getElementById('victory-score').textContent = victoryScore;
+            document.getElementById('victory-total').textContent = currentTotal;
+            document.getElementById('victory-time').textContent = currentTime + 's';
+            document.getElementById('victory-progress').textContent = completedLevelsCount + '/' + levels.length;
+            
+            // Vérifier si c'est le dernier niveau
+            const isLastLevel = (currentLevelIndex >= levels.length - 1);
+            
+            // Vérifier si toutes les pièces ont été collectées
+            const isPerfect = (victoryScore === currentTotal && currentTotal > 0);
+            
+            if (isLastLevel) {
+                document.getElementById('victory-title').textContent = isPerfect ? '🏆 PERFECT ! TOUS LES NIVEAUX TERMINÉS !' : '🏆 TOUS LES NIVEAUX TERMINÉS !';
+                document.getElementById('next-level-btn').textContent = '🎮 Mode édition';
+            } else {
+                document.getElementById('victory-title').textContent = isPerfect ? '⭐ PERFECT ! NIVEAU TERMINÉ !' : '🎉 NIVEAU TERMINÉ !';
+                document.getElementById('next-level-btn').textContent = '➡️ Niveau suivant';
+            }
+            
+            victoryOverlay.classList.add('visible');
+        }, 100);
+    }
+    
+    // Créer des confettis
+    function createConfetti() {
+        const colors = ['#ff0055', '#00ff88', '#ffaa00', '#a29bfe', '#f1c40f'];
+        for (let i = 0; i < 50; i++) {
+            setTimeout(() => {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 3000);
+            }, i * 30);
+        }
+    }
+    
+    // Supprimer tous les confettis
+    function clearConfetti() {
+        const confettis = document.querySelectorAll('.confetti');
+        confettis.forEach(c => c.remove());
+    }
+    
+    // Bouton "Recommencer le niveau"
+    document.getElementById('restart-level-btn').onclick = () => {
+        clearConfetti(); // Supprimer les confettis
+        victoryOverlay.classList.remove('visible');
+        isPlaying = true; // Remettre en mode jeu
+        playBtn.textContent = "⏹ STOP";
+        playBtn.classList.add('playing');
+        reset();
+    };
+    
+    // Bouton "Niveau suivant" / "Mode édition"
+    document.getElementById('next-level-btn').onclick = () => {
+        clearConfetti(); // Supprimer les confettis
+        victoryOverlay.classList.remove('visible');
+        
+        if (currentLevelIndex >= levels.length - 1) {
+            // Dernier niveau terminé - retour en mode édition
+            isPlaying = false;
+            playBtn.textContent = "▶ TEST";
+            playBtn.classList.remove('playing');
+            activeEnemies = [];
+            loadCurrentLevel();
+            // showNotification(`🎉 Félicitations ! Vous avez terminé tous les ${levels.length} niveaux !\n\nTemps total: ${timer}s\nPièces: ${victoryScore}`,"warning");
+        } else {
+            // Passer au niveau suivant
+            saveCurrentLevel();
+            currentLevelIndex++;
+            loadCurrentLevel();
+            updateProgressUI();
+            isPlaying = true; // Garder le mode jeu actif
+            playBtn.textContent = "⏹ STOP";
+            playBtn.classList.add('playing');
+            reset();
+        }
     };
 
     canvas.onmousedown = (e) => {
-        console.log('🖱️ Canvas mousedown - target:', e.target.tagName);
-        
-        // Bloquer SEULEMENT si on clique directement sur un input/select/button
         if(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'TEXTAREA') {
-            console.log('⛔ Clic sur contrôle UI - ignoré');
             return;
         }
         
-        // Vérifier si on est dans le panel UI (mais pas sur le canvas)
         if(e.target !== canvas) {
-            console.log('⛔ Clic hors canvas - ignoré');
             return;
         }
         
-        console.log('✅ Clic valide sur le canvas');
         canvas.isDrawing = true; 
         handleCanvasClick(e); 
     };
     
     window.onmouseup = () => {
-        if (canvas.isDrawing) {
-            console.log('🖱️ Mouse up - arrêt dessin');
-        }
         canvas.isDrawing = false;
     };
     
     canvas.onmousemove = (e) => { 
         if(canvas.isDrawing) {
-            console.log('🖱️ Mouse move - dessin en cours');
             handleCanvasClick(e);
         }
     };
     
     function handleCanvasClick(e) {
-        console.log('🖱️ handleCanvasClick - target:', e.target.tagName, 'isPlaying:', isPlaying);
-        
         if (isPlaying) return;
         
-        // IMPORTANT: Ne pas traiter les clics sur les inputs/sliders !
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
-            console.log('⛔ Clic ignoré - c\'est un input');
             return;
         }
         
@@ -783,69 +1124,49 @@
         const x = Math.floor((e.clientX - rect.left) / TILE);
         const y = Math.floor((e.clientY - rect.top) / TILE);
         
-        console.log('📍 Position canvas - x:', x, 'y:', y);
-        
         if (y < 0 || y >= ROWS || x < 0 || x >= COLS) return;
 
         const key = `${x},${y}`;
-        console.log('🔑 Key:', key, 'currentTile:', currentTile);
 
-        // Déplacement automatique pour P et F : supprimer l'ancien
         if (currentTile === 'P' || currentTile === 'F') {
-            console.log('🔄 Déplacement de', currentTile);
-            // Supprimer l'ancien P ou F
             for(let r = 0; r < ROWS; r++) {
                 for(let c = 0; c < COLS; c++) {
                     if (map[r][c] === currentTile) {
                         map[r][c] = '.';
-                        console.log('🗑️ Ancien', currentTile, 'supprimé de', c, r);
                     }
                 }
             }
-            // Placer le nouveau
             map[y][x] = currentTile;
-            console.log('✅ Nouveau', currentTile, 'placé en', x, y);
             updateOutput();
             return;
         }
 
         if (currentTile === 'E') {
-            // Placement d'un nouvel ennemi
             if (map[y][x] !== 'E') {
-                console.log('➕ Placement nouvel ennemi');
                 map[y][x] = 'E';
-                // Créer avec les valeurs par défaut si pas encore d'ennemi sélectionné
                 if (!enemyData[key]) {
                     enemyData[key] = {
                         speed: 2,
                         range: 3,
                         dir: 1
                     };
-                    console.log('🆕 Nouvelles données créées:', enemyData[key]);
                 }
                 updateOutput();
-            } else {
-                console.log('🔄 Ennemi déjà présent, sélection');
             }
             
-            // Sélection : charger les valeurs EXISTANTES de cet ennemi
             selectedEnemyPos = key;
             loadEnemyToUI(key);
             
             enemyPanel.classList.add('visible', 'editing');
         } else {
-            // Clic sur ennemi existant pour le sélectionner (même si on n'est pas en mode E)
             if (map[y][x] === 'E' && currentTile !== '.') {
-                console.log('👆 Sélection d\'un ennemi existant');
                 selectedEnemyPos = key;
                 loadEnemyToUI(key);
                 enemyPanel.classList.add('visible', 'editing');
                 return;
             }
             
-            // Suppression d'un ennemi avec la gomme
             if (currentTile === '.' && map[y][x] === 'E') {
-                console.log('🗑️ Suppression ennemi');
                 delete enemyData[key];
                 if (selectedEnemyPos === key) {
                     selectedEnemyPos = null;
@@ -859,13 +1180,52 @@
     
     function updateOutput() {
         saveCurrentLevel(); // Auto-save dans le tableau
-        const data = { 
-            levels: levels,
-            currentLevelIndex: currentLevelIndex,
-            version: "0.4" 
-        };
-        levelOut.value = JSON.stringify(data, null, 2);
+        // Plus besoin de textarea JSON
     }
+    
+    // Mise à jour de l'indicateur de progression
+    function updateProgressUI() {
+        const currentLevel = levels[currentLevelIndex];
+        document.getElementById('current-level-name').textContent = currentLevel.name;
+        document.getElementById('total-levels').textContent = levels.length;
+        document.getElementById('completed-levels').textContent = completedLevelsCount;
+        
+        const progress = (completedLevelsCount / levels.length) * 100;
+        document.getElementById('progress-fill').style.width = progress + '%';
+        
+        // Mettre à jour l'état des boutons de navigation
+        const prevBtn = document.getElementById('prev-level-btn');
+        const nextBtn = document.getElementById('next-level-btn-edit');
+        
+        if (prevBtn) {
+            prevBtn.disabled = (currentLevelIndex === 0);
+            prevBtn.style.opacity = (currentLevelIndex === 0) ? '0.3' : '1';
+            prevBtn.style.cursor = (currentLevelIndex === 0) ? 'not-allowed' : 'pointer';
+        }
+        
+        if (nextBtn) {
+            nextBtn.disabled = (currentLevelIndex >= levels.length - 1);
+            nextBtn.style.opacity = (currentLevelIndex >= levels.length - 1) ? '0.3' : '1';
+            nextBtn.style.cursor = (currentLevelIndex >= levels.length - 1) ? 'not-allowed' : 'pointer';
+        }
+    }
+    
+    // Navigation entre les niveaux
+    document.getElementById('prev-level-btn').onclick = () => {
+        if (currentLevelIndex > 0) {
+            saveCurrentLevel();
+            currentLevelIndex--;
+            loadCurrentLevel();
+        }
+    };
+    
+    document.getElementById('next-level-btn-edit').onclick = () => {
+        if (currentLevelIndex < levels.length - 1) {
+            saveCurrentLevel();
+            currentLevelIndex++;
+            loadCurrentLevel();
+        }
+    };
 
     document.querySelectorAll('.tile-opt').forEach(opt => opt.onclick = () => {
         document.querySelector('.tile-opt.active').classList.remove('active');
@@ -891,26 +1251,22 @@
     const addLevelBtn = document.getElementById('add-level-btn');
     const levelListEl = document.getElementById('level-list');
     
-    // Charger le niveau actuel depuis le tableau levels
     function loadCurrentLevel() {
         const level = levels[currentLevelIndex];
-        map = JSON.parse(JSON.stringify(level.map)); // Deep copy
-        enemyData = JSON.parse(JSON.stringify(level.enemies)); // Deep copy
+        map = JSON.parse(JSON.stringify(level.map));
+        enemyData = JSON.parse(JSON.stringify(level.enemies));
         selectedEnemyPos = null;
         enemyPanel.classList.remove('editing');
         updateOutput();
-        console.log('📥 Niveau chargé:', level.name);
+        updateProgressUI();
     }
     
-    // Sauvegarder le niveau actuel dans le tableau levels
     function saveCurrentLevel() {
         const level = levels[currentLevelIndex];
-        level.map = JSON.parse(JSON.stringify(map)); // Deep copy
-        level.enemies = JSON.parse(JSON.stringify(enemyData)); // Deep copy
-        console.log('💾 Niveau sauvegardé:', level.name);
+        level.map = JSON.parse(JSON.stringify(map));
+        level.enemies = JSON.parse(JSON.stringify(enemyData));
     }
     
-    // Afficher la liste des niveaux
     function renderLevelList() {
         levelListEl.innerHTML = '';
         
@@ -918,7 +1274,6 @@
             const div = document.createElement('div');
             div.className = 'level-item' + (index === currentLevelIndex ? ' active' : '');
             
-            // Compter les éléments
             let enemyCount = Object.keys(level.enemies).length;
             let hasPlayer = JSON.stringify(level.map).includes('"P"');
             let hasFlag = JSON.stringify(level.map).includes('"F"');
@@ -926,7 +1281,10 @@
             div.innerHTML = `
                 <div class="level-item-info">
                     <div>
-                        <div class="level-item-name">${level.name}</div>
+                        <div class="level-item-name" style="display: flex; align-items: center; gap: 8px;">
+                            <span class="level-name-text">${level.name}</span>
+                            <button class="rename-level-btn" onclick="renameLevel(${index})" style="background: none; border: none; color: #888; cursor: pointer; font-size: 0.9em; padding: 2px 6px; transition: 0.2s;" title="Renommer">✏️</button>
+                        </div>
                         <div class="level-item-stats">👾 ${enemyCount} | ${hasPlayer ? '🏃' : '❌'} | ${hasFlag ? '🚩' : '❌'}</div>
                     </div>
                 </div>
@@ -937,7 +1295,6 @@
                 </div>
             `;
             
-            // Clic pour sélectionner
             div.querySelector('.level-item-info').onclick = () => {
                 if (index !== currentLevelIndex) {
                     saveCurrentLevel();
@@ -951,26 +1308,22 @@
         });
     }
     
-    // Ouvrir le popup
     levelManagerBtn.onclick = () => {
-        saveCurrentLevel(); // Sauvegarder avant d'ouvrir
+        saveCurrentLevel();
         renderLevelList();
         levelManagerOverlay.classList.add('visible');
     };
     
-    // Fermer le popup
     closeLevelManagerBtn.onclick = () => {
         levelManagerOverlay.classList.remove('visible');
     };
     
-    // Fermer en cliquant sur l'overlay
     levelManagerOverlay.onclick = (e) => {
         if (e.target === levelManagerOverlay) {
             levelManagerOverlay.classList.remove('visible');
         }
     };
     
-    // Ajouter un nouveau niveau
     addLevelBtn.onclick = () => {
         const newLevel = {
             id: Date.now(),
@@ -980,13 +1333,400 @@
         };
         levels.push(newLevel);
         renderLevelList();
-        console.log('➕ Nouveau niveau créé:', newLevel.name);
     };
     
-    // Supprimer un niveau
+    // Exporter le projet complet depuis le popup
+    document.getElementById('export-project-btn').onclick = () => {
+        saveCurrentLevel();
+        const data = { 
+            levels: levels,
+            currentLevelIndex: currentLevelIndex,
+            version: "0.4" 
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `platformer-project-${levels.length}levels.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showNotification("Le jeu a été généré avec succès !", "success");
+        // Feedback visuel
+        const btn = document.getElementById('export-project-btn');
+        const originalText = btn.textContent;
+        btn.textContent = '✓ SAUVEGARDÉ !';
+        setTimeout(() => { btn.textContent = originalText; }, 1000);
+    };
+    
+    // Exporter le jeu jouable (HTML standalone)
+    document.getElementById('export-game-btn').onclick = () => {
+        saveCurrentLevel();
+        exportPlayableGame();
+    };
+    
+    function exportPlayableGame() {
+        const gameData = {
+            levels: levels,
+            version: "0.4"
+        };
+        
+        const gameHTML = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platformer Game</title>
+    <style>
+        :root { --accent: #ff0055; --bg: #0d0d12; --success: #00ff88; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; align-items: center; justify-content: center; }
+        #game-container { position: relative; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        canvas { background: transparent; box-shadow: 0 0 40px rgba(0,0,0,0.5); image-rendering: pixelated; }
+        .title { font-size: 2em; font-weight: bold; color: var(--accent); text-shadow: 0 0 20px rgba(255, 0, 85, 0.5); }
+        .controls { font-size: 0.9em; color: #888; text-align: center; }
+        
+        #victory-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9); z-index: 2000; align-items: center; justify-content: center;
+            animation: fadeIn 0.5s ease;
+        }
+        #victory-overlay.visible { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        #victory-popup {
+            background: linear-gradient(135deg, #1e1e2e 0%, #2d1e3e 100%);
+            border: 3px solid var(--success); border-radius: 20px; padding: 50px; text-align: center;
+            box-shadow: 0 20px 80px rgba(0, 255, 136, 0.4); animation: victoryBounce 0.6s ease; max-width: 500px;
+        }
+        @keyframes victoryBounce {
+            0% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+            50% { transform: scale(1.1) rotate(5deg); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        #victory-popup h1 {
+            font-size: 3em; margin: 0 0 20px 0; color: var(--success);
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5); animation: glow 2s ease-in-out infinite;
+        }
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
+            50% { text-shadow: 0 0 40px rgba(0, 255, 136, 0.8), 0 0 60px rgba(0, 255, 136, 0.6); }
+        }
+        .victory-stats { background: rgba(0, 0, 0, 0.3); border-radius: 12px; padding: 25px; margin: 25px 0; }
+        .victory-stat { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); font-size: 1.2em; }
+        .victory-stat:last-child { border-bottom: none; }
+        .victory-stat-label { color: #aaa; }
+        .victory-stat-value { color: var(--success); font-weight: bold; font-size: 1.3em; }
+        .victory-buttons { display: flex; gap: 15px; margin-top: 30px; }
+        .victory-btn {
+            flex: 1; padding: 15px 30px; font-size: 1.1em; font-weight: bold; border: none;
+            border-radius: 10px; cursor: pointer; transition: 0.3s;
+        }
+        .victory-btn.next { background: var(--success); color: #000; }
+        .victory-btn.next:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0, 255, 136, 0.4); }
+        .victory-btn.restart { background: var(--accent); color: white; }
+        .victory-btn.restart:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(255, 0, 85, 0.4); }
+        .confetti { position: fixed; width: 10px; height: 10px; background: var(--success); position: absolute; animation: confetti-fall 3s linear; }
+        @keyframes confetti-fall { to { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div class="title">🎮 PLATFORMER GAME</div>
+        <canvas id="c"></canvas>
+        <div class="controls">
+            ⬅️ ➡️ Déplacement | ⬆️ Sauter | ENTER Recommencer
+        </div>
+    </div>
+    
+    <div id="victory-overlay">
+        <div id="victory-popup">
+            <h1 id="victory-title">🎉 NIVEAU TERMINÉ !</h1>
+            <div class="victory-stats">
+                <div class="victory-stat">
+                    <span class="victory-stat-label">🟡 Pièces collectées</span>
+                    <span class="victory-stat-value"><span id="victory-score">0</span>/<span id="victory-total">0</span></span>
+                </div>
+                <div class="victory-stat">
+                    <span class="victory-stat-label">⏱️ Temps</span>
+                    <span class="victory-stat-value" id="victory-time">0.00s</span>
+                </div>
+                <div class="victory-stat">
+                    <span class="victory-stat-label">📊 Progression</span>
+                    <span class="victory-stat-value" id="victory-progress">0/0</span>
+                </div>
+            </div>
+            <div class="victory-buttons">
+                <button class="victory-btn restart" id="restart-level-btn">🔄 Recommencer</button>
+                <button class="victory-btn next" id="next-level-btn">➡️ Niveau suivant</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const GAME_DATA = ${JSON.stringify(gameData)};
+        
+        const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
+        const victoryOverlay = document.getElementById('victory-overlay');
+        const TILE = 40, ROWS = 15, COLS = 25;
+        canvas.width = COLS * TILE; canvas.height = ROWS * TILE;
+        
+        let gameActive = true;
+        let levels = GAME_DATA.levels;
+        let currentLevelIndex = 0;
+        let map = [];
+        let enemyData = {};
+        
+        let score = 0, timer = "0.00", startTime = 0, totalCoins = 0;
+        let lastTime = performance.now();
+        let completedLevelsCount = 0;
+        let victoryScore = 0;
+        
+        let p = { x: 0, y: 0, vx: 0, vy: 0, w: 28, h: 36, ground: false };
+        let inputs = {};
+        let activeEnemies = [];
+
+        function loadLevel() {
+            const level = levels[currentLevelIndex];
+            map = JSON.parse(JSON.stringify(level.map));
+            enemyData = JSON.parse(JSON.stringify(level.enemies));
+            reset();
+        }
+
+        function getEnemyParams(key) {
+            const data = enemyData[key];
+            if (!data) return { speed: 2, range: 3, dir: 1 };
+            return { speed: parseFloat(data.speed) || 2, range: parseInt(data.range) || 3, dir: parseInt(data.dir) || 1 };
+        }
+
+        const initEnemies = () => {
+            activeEnemies = [];
+            map.forEach((r, y) => {
+                r.forEach((cell, x) => {
+                    if (cell === 'E') {
+                        const key = x + "," + y;
+                        const params = getEnemyParams(key);
+                        activeEnemies.push({
+                            x: x * TILE, y: y * TILE + 4, w: 24, h: 28, startX: x * TILE,
+                            speed: params.speed * 0.5, range: params.range * TILE, dir: params.dir, vx: 0,
+                            color: "hsl(" + (Math.random() * 60 + 240) + ", 70%, 70%)"
+                        });
+                    }
+                });
+            });
+        };
+
+        const updateEnemies = (dt) => {
+            activeEnemies.forEach(enemy => {
+                enemy.vx = enemy.speed * enemy.dir;
+                enemy.x += enemy.vx * dt;
+                const x1 = Math.floor(enemy.x / TILE), x2 = Math.floor((enemy.x + enemy.w) / TILE);
+                const y1 = Math.floor(enemy.y / TILE), y2 = Math.floor((enemy.y + enemy.h) / TILE);
+                let hit = false;
+                for(let yy = y1; yy <= y2; yy++) {
+                    for(let xx = x1; xx <= x2; xx++) {
+                        if(map[yy] && map[yy][xx] === '#') hit = true;
+                    }
+                }
+                if (hit) { enemy.dir *= -1; enemy.x += enemy.vx * dt * 2; }
+                if (enemy.x > enemy.startX + enemy.range) { enemy.dir = -1; enemy.x = enemy.startX + enemy.range; }
+                else if (enemy.x < enemy.startX - enemy.range) { enemy.dir = 1; enemy.x = enemy.startX - enemy.range; }
+            });
+        };
+
+        const checkEnemyPlayerCollision = () => {
+            for(let enemy of activeEnemies) {
+                if (p.x < enemy.x + enemy.w && p.x + p.w > enemy.x && p.y < enemy.y + enemy.h && p.y + p.h > enemy.y) return true;
+            }
+            return false;
+        };
+
+        const drawTile = (t, x, y) => {
+            let px = x * TILE, py = y * TILE;
+            if (t === '#') { ctx.fillStyle = '#2d3436'; ctx.fillRect(px, py, TILE, TILE); ctx.strokeStyle="#111"; ctx.strokeRect(px,py,TILE,TILE); }
+            if (t === '^') { ctx.fillStyle = '#ff4757'; ctx.beginPath(); ctx.moveTo(px+5, py+TILE); ctx.lineTo(px+20, py+5); ctx.lineTo(px+35, py+TILE); ctx.fill(); }
+            if (t === 'C') { ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.arc(px+20, py+20, 8, 0, 7); ctx.fill(); }
+            if (t === 'F') { ctx.fillStyle = '#2ecc71'; ctx.fillRect(px+10, py+5, 4, TILE-5); ctx.fillRect(px+14, py+5, 20, 15); }
+        };
+
+        const collide = (nx, ny) => {
+            let x1 = Math.floor(nx/TILE), x2 = Math.floor((nx+p.w)/TILE);
+            let y1 = Math.floor(ny/TILE), y2 = Math.floor((ny+p.h)/TILE);
+            for(let i=y1; i<=y2; i++) for(let j=x1; j<=x2; j++)
+                if(map[i] && map[i][j] === '#') return true;
+            return false;
+        };
+
+        const checkTriggers = () => {
+            let tx = Math.floor((p.x + p.w/2) / TILE), ty = Math.floor((p.y + p.h/2) / TILE);
+            if (map[ty] && map[ty][tx]) {
+                let tile = map[ty][tx];
+                if (tile === '^') reset();
+                if (tile === 'C') { map[ty][tx] = '.'; score++; }
+                if (tile === 'F') showVictoryScreen();
+            }
+            if (checkEnemyPlayerCollision()) reset();
+            if (p.y > canvas.height) reset();
+        };
+
+        const reset = () => {
+            let found = false;
+            map.forEach((r, y) => r.forEach((cell, x) => { if(cell === 'P') { p.x = x*TILE+6; p.y = y*TILE; found=true; } }));
+            if(!found) { p.x = TILE; p.y = TILE; }
+            p.vx = p.vy = 0; score = 0;
+            totalCoins = 0;
+            map.forEach((r) => r.forEach((cell) => { if(cell === 'C') totalCoins++; }));
+            startTime = Date.now();
+            initEnemies();
+        };
+
+        const loop = (timestamp) => {
+            let dt = Math.min((timestamp - lastTime) / 16.66, 2);
+            lastTime = timestamp;
+            if (gameActive) {
+                timer = ((Date.now() - startTime) / 1000).toFixed(2);
+            }
+            timer = ((Date.now() - startTime) / 1000).toFixed(2);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            map.forEach((r, y) => r.forEach((t, x) => drawTile(t, x, y)));
+
+            updateEnemies(dt);
+            activeEnemies.forEach(enemy => {
+                ctx.fillStyle = enemy.color;
+                ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
+                ctx.fillStyle = '#000';
+                const eyeOffset = enemy.dir > 0 ? 4 : -4;
+                ctx.fillRect(enemy.x + 6 + eyeOffset, enemy.y + 6, 4, 4);
+                ctx.fillRect(enemy.x + 14 + eyeOffset, enemy.y + 6, 4, 4);
+            });
+
+            if (inputs['ArrowLeft']) p.vx -= 1.2 * dt;
+            if (inputs['ArrowRight']) p.vx += 1.2 * dt;
+            p.vx *= Math.pow(0.8, dt); p.vy += 0.8 * dt;
+
+            p.x += p.vx * dt;
+            if (collide(p.x, p.y)) { p.x -= p.vx * dt; p.vx = 0; }
+            p.y += p.vy * dt; p.ground = false;
+            if (collide(p.x, p.y)) {
+                if(p.vy > 0) p.ground = true;
+                p.y -= p.vy * dt; p.vy = 0;
+            }
+            if (inputs['ArrowUp'] && p.ground) p.vy = -14;
+            checkTriggers();
+
+            ctx.fillStyle = '#00ff88';
+            ctx.fillRect(p.x, p.y, p.w, p.h);
+
+            ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+            ctx.fillRect(0, 0, canvas.width, 40);
+            ctx.fillStyle = "white";
+            ctx.font = "bold 16px sans-serif";
+            ctx.fillText("🟡 " + score + "/" + totalCoins, 20, 25);
+            ctx.fillText("⏱️ " + timer + "s", canvas.width - 100, 25);
+
+            requestAnimationFrame(loop);
+        };
+
+        function showVictoryScreen() {
+            gameActive = false;
+            victoryScore = score;
+            const currentTime = timer;
+            const currentTotal = totalCoins;
+            completedLevelsCount++;
+            createConfetti();
+
+            setTimeout(() => {
+                document.getElementById('victory-score').textContent = victoryScore;
+                document.getElementById('victory-total').textContent = currentTotal;
+                document.getElementById('victory-time').textContent = currentTime + 's';
+                document.getElementById('victory-progress').textContent = completedLevelsCount + '/' + levels.length;
+
+                const isLastLevel = (currentLevelIndex >= levels.length - 1);
+                const isPerfect = (victoryScore === currentTotal && currentTotal > 0);
+
+                if (isLastLevel) {
+                    document.getElementById('victory-title').textContent = isPerfect ? '🏆 PERFECT ! TOUS LES NIVEAUX TERMINÉS !' : '🏆 TOUS LES NIVEAUX TERMINÉS !';
+                    document.getElementById('next-level-btn').textContent = '🎮 Rejouer';
+                } else {
+                    document.getElementById('victory-title').textContent = isPerfect ? '⭐ PERFECT ! NIVEAU TERMINÉ !' : '🎉 NIVEAU TERMINÉ !';
+                    document.getElementById('next-level-btn').textContent = '➡️ Niveau suivant';
+                }
+
+                victoryOverlay.classList.add('visible');
+            }, 100);
+        }
+
+        function createConfetti() {
+            const colors = ['#ff0055', '#00ff88', '#ffaa00', '#a29bfe', '#f1c40f'];
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                    document.body.appendChild(confetti);
+                    setTimeout(() => confetti.remove(), 3000);
+                }, i * 30);
+            }
+        }
+
+        function clearConfetti() {
+            const confettis = document.querySelectorAll('.confetti');
+            confettis.forEach(c => c.remove());
+        }
+
+        document.getElementById('restart-level-btn').onclick = () => {
+            gameActive = true;
+            clearConfetti();
+            victoryOverlay.classList.remove('visible');
+            reset();
+        };
+
+        document.getElementById('next-level-btn').onclick = () => {
+            gameActive = true;
+            clearConfetti();
+            victoryOverlay.classList.remove('visible');
+
+            if (currentLevelIndex >= levels.length - 1) {
+                currentLevelIndex = 0;
+                completedLevelsCount = 0;
+                loadLevel();
+            } else {
+                currentLevelIndex++;
+                loadLevel();
+            }
+        };
+
+        window.onkeydown = (e) => { 
+            inputs[e.code] = true; 
+            if(e.code==='Enter') reset();
+        };
+        window.onkeyup = (e) => inputs[e.code] = false;
+
+        loadLevel();
+        requestAnimationFrame(loop);
+    <\/script>
+</body>
+</html>`;
+
+        const blob = new Blob([gameHTML], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'platformer-game.html';
+        a.click();
+        URL.revokeObjectURL(url);
+
+        // Feedback visuel
+        const btn = document.getElementById('export-game-btn');
+        const originalText = btn.textContent;
+        btn.textContent = '✓ JEU EXPORTÉ !';
+        setTimeout(() => { btn.textContent = originalText; }, 1500);
+    }
+    
     window.deleteLevel = (index) => {
         if (levels.length === 1) {
-            alert("Impossible de supprimer le dernier niveau !");
+            showNotification("Impossible de supprimer le dernier niveau !","warning");
             return;
         }
         
@@ -996,7 +1736,6 @@
         
         levels.splice(index, 1);
         
-        // Ajuster l'index actuel si nécessaire
         if (currentLevelIndex >= levels.length) {
             currentLevelIndex = levels.length - 1;
         }
@@ -1005,16 +1744,24 @@
         }
         
         renderLevelList();
-        console.log('🗑️ Niveau supprimé');
     };
     
-    // Déplacer un niveau vers le haut
+    window.renameLevel = (index) => {
+        const currentName = levels[index].name;
+        const newName = prompt("Nouveau nom du niveau :", currentName);
+        
+        if (newName && newName.trim() !== '' && newName !== currentName) {
+            levels[index].name = newName.trim();
+            renderLevelList();
+            updateProgressUI(); // Mettre à jour l'affichage si c'est le niveau actuel
+        }
+    };
+    
     window.moveLevelUp = (index) => {
         if (index === 0) return;
         
         [levels[index - 1], levels[index]] = [levels[index], levels[index - 1]];
         
-        // Ajuster l'index actuel
         if (currentLevelIndex === index) {
             currentLevelIndex = index - 1;
         } else if (currentLevelIndex === index - 1) {
@@ -1022,16 +1769,13 @@
         }
         
         renderLevelList();
-        console.log('⬆️ Niveau déplacé vers le haut');
     };
     
-    // Déplacer un niveau vers le bas
     window.moveLevelDown = (index) => {
         if (index === levels.length - 1) return;
         
         [levels[index], levels[index + 1]] = [levels[index + 1], levels[index]];
         
-        // Ajuster l'index actuel
         if (currentLevelIndex === index) {
             currentLevelIndex = index + 1;
         } else if (currentLevelIndex === index + 1) {
@@ -1039,10 +1783,8 @@
         }
         
         renderLevelList();
-        console.log('⬇️ Niveau déplacé vers le bas');
     };
     
-    // Charger le premier niveau au démarrage
     loadCurrentLevel();
     
     updateOutput();
