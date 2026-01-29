@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="fr">
-<head>
+<html lang="fr"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <meta charset="UTF-8">
     <title>Platformer Studio v0.5 - Multi-Level Progression</title>
     <style>
@@ -448,17 +448,17 @@
         <button id="level-manager-btn" style="background: #333; color: white; border: none; padding: 12px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1em; margin-top: 10px; transition: 0.2s;">🗂️ GESTION DES NIVEAUX</button>
         
         <div id="level-progress">
-            <button id="prev-level-btn" style="background: #333; border: 1px solid #555; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s;" title="Niveau précédent">◀</button>
+            <button id="prev-level-btn" style="background: rgb(51, 51, 51); border: 1px solid rgb(85, 85, 85); color: rgb(255, 255, 255); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; opacity: 1;" title="Niveau précédent">◀</button>
             <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; margin: 0 10px;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <div class="current-level" id="current-level-name">Niveau 1</div>
-                    <div style="color: #888; font-size: 0.9em;"><span id="completed-levels">0</span>/<span id="total-levels">1</span></div>
+                    <div class="current-level" id="current-level-name">Niveau 2</div>
+                    <div style="color: #888; font-size: 0.9em;"><span id="completed-levels">0</span>/<span id="total-levels">2</span></div>
                 </div>
                 <div class="progress-bar">
                     <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
                 </div>
             </div>
-            <button id="next-level-btn-edit" style="background: #333; border: 1px solid #555; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s;" title="Niveau suivant">▶</button>
+            <button id="next-level-btn-edit" style="background: rgb(51, 51, 51); border: 1px solid rgb(85, 85, 85); color: rgb(255, 255, 255); padding: 8px 12px; border-radius: 6px; cursor: not-allowed; font-weight: bold; transition: 0.2s; opacity: 0.3;" title="Niveau suivant" disabled="disabled">▶</button>
         </div>
         
         <div class="hint">1. Cliquez sur un ennemi 2. Réglez les sliders 3. Cliquez OK</div>
@@ -467,10 +467,10 @@
     <div class="section">
         <label>Palette :</label>
         <div class="palette">
-            <div class="tile-opt active" data-id="#" title="Mur">🧱</div>
+            <div class="tile-opt" data-id="#" title="Mur">🧱</div>
             <div class="tile-opt" data-id="." title="Gomme">🧼</div>
             <div class="tile-opt" data-id="^" title="Pic">🔺</div>
-            <div class="tile-opt" data-id="C" title="Pièce">🟡</div>
+            <div class="tile-opt active" data-id="C" title="Pièce">🟡</div>
             <div class="tile-opt" data-id="E" title="Ennemi">👾</div>
             <div class="tile-opt" data-id="P" title="Joueur">🏃</div>
             <div class="tile-opt" data-id="F" title="Drapeau">🚩</div>
@@ -493,7 +493,7 @@
             <div class="param-group">
                 <label>Direction</label>
                 <select id="enemy-dir" style="width: 100%; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px;">
-                    <option value="1">→ Droite</option>
+                    <option value="1" selected="selected">→ Droite</option>
                     <option value="-1">← Gauche</option>
                 </select>
             </div>
@@ -513,18 +513,50 @@
 </div>
 
 <div id="game-container">
-    <canvas id="c"></canvas>
+    <canvas id="c" width="1000" height="600"></canvas>
 </div>
 
 <!-- Popup de gestion des niveaux -->
-<div id="level-manager-overlay">
+<div id="level-manager-overlay" class="">
     <div id="level-manager">
         <h2>🗂️ Gestion des niveaux</h2>
-        
-        <div class="level-list" id="level-list">
-            <!-- Les niveaux seront ajoutés ici dynamiquement -->
-        </div>
-        
+        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <label style="display: block; color: var(--accent); font-weight: bold; margin-bottom: 8px; font-size: 0.9em;">NOM DU JEU</label>
+        <input type="text" id="game-project-name" value="Nom du Jeu" 
+               style="width: 100px; background: #000; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 5px; font-size: 1.1em; outline: none; border-left: 4px solid var(--accent);">
+&nbsp
+        <div class="level-list" id="level-list"><div class="level-item">
+                <div class="level-item-info">
+                    <div>
+                        <div class="level-item-name" style="display: flex; align-items: center; gap: 8px;">
+                            <span class="level-name-text">Niveau 1</span>
+                            <button class="rename-level-btn" onclick="renameLevel(0)" style="background: none; border: none; color: #888; cursor: pointer; font-size: 0.9em; padding: 2px 6px; transition: 0.2s;" title="Renommer">✏️</button>
+                        </div>
+                        <div class="level-item-stats">👾 0 | 🏃 | 🚩</div>
+                    </div>
+                </div>
+                <div class="level-item-actions">
+                    
+                    <button class="level-action-btn" onclick="moveLevelDown(0)">⬇️</button>
+                    <button class="level-action-btn danger" onclick="deleteLevel(' + index + ')">🗑️</button>
+                </div>
+            </div><div class="level-item active">
+                <div class="level-item-info">
+                    <div>
+                        <div class="level-item-name" style="display: flex; align-items: center; gap: 8px;">
+                            <span class="level-name-text">Niveau 2</span>
+                            <button class="rename-level-btn" onclick="renameLevel(1)" style="background: none; border: none; color: #888; cursor: pointer; font-size: 0.9em; padding: 2px 6px; transition: 0.2s;" title="Renommer">✏️</button>
+                        </div>
+                        <div class="level-item-stats">👾 0 | 🏃 | 🚩</div>
+                    </div>
+                </div>
+                <div class="level-item-actions">
+                    <button class="level-action-btn" onclick="moveLevelUp(1)">⬆️</button>
+                    
+                    <button class="level-action-btn danger" onclick="deleteLevel(' + index + ')">🗑️</button>
+                </div>
+            </div></div>
+            </div>
         <div class="level-manager-controls">
             <button class="level-manager-btn" id="add-level-btn">➕ Nouveau niveau</button>
         </div>
@@ -1363,19 +1395,19 @@
         saveCurrentLevel();
         exportPlayableGame();
     };
-    
     function exportPlayableGame() {
-        const gameData = {
-            levels: levels,
-            version: "0.4"
-        };
-        
-        const gameHTML = `<!DOCTYPE html>
+    const projectName = document.getElementById('game-project-name').value;
+    const gameData = {
+        levels: levels,
+        version: "0.4"
+    };
+    
+    const gameHTML = `<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Platformer Game</title>
+    <title> ${projectName}</title>
     <style>
         :root { --accent: #ff0055; --bg: #0d0d12; --success: #00ff88; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; align-items: center; justify-content: center; }
@@ -1387,9 +1419,8 @@
         #victory-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.9); z-index: 2000; align-items: center; justify-content: center;
-            animation: fadeIn 0.5s ease;
         }
-        #victory-overlay.visible { display: flex; }
+        #victory-overlay.visible { display: flex; animation: fadeIn 0.5s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
         #victory-popup {
@@ -1402,39 +1433,30 @@
             50% { transform: scale(1.1) rotate(5deg); }
             100% { transform: scale(1) rotate(0deg); opacity: 1; }
         }
-        #victory-popup h1 {
-            font-size: 3em; margin: 0 0 20px 0; color: var(--success);
-            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5); animation: glow 2s ease-in-out infinite;
-        }
-        @keyframes glow {
-            0%, 100% { text-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
-            50% { text-shadow: 0 0 40px rgba(0, 255, 136, 0.8), 0 0 60px rgba(0, 255, 136, 0.6); }
-        }
         .victory-stats { background: rgba(0, 0, 0, 0.3); border-radius: 12px; padding: 25px; margin: 25px 0; }
         .victory-stat { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); font-size: 1.2em; }
-        .victory-stat:last-child { border-bottom: none; }
-        .victory-stat-label { color: #aaa; }
-        .victory-stat-value { color: var(--success); font-weight: bold; font-size: 1.3em; }
         .victory-buttons { display: flex; gap: 15px; margin-top: 30px; }
-        .victory-btn {
-            flex: 1; padding: 15px 30px; font-size: 1.1em; font-weight: bold; border: none;
-            border-radius: 10px; cursor: pointer; transition: 0.3s;
-        }
+        .victory-btn { flex: 1; padding: 15px 30px; font-size: 1.1em; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; transition: 0.3s; }
         .victory-btn.next { background: var(--success); color: #000; }
-        .victory-btn.next:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0, 255, 136, 0.4); }
         .victory-btn.restart { background: var(--accent); color: white; }
-        .victory-btn.restart:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(255, 0, 85, 0.4); }
-        .confetti { position: fixed; width: 10px; height: 10px; background: var(--success); position: absolute; animation: confetti-fall 3s linear; }
-        @keyframes confetti-fall { to { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
+        
+        /* FIX CONFETTI : position fixed et top obligatoire */
+        .confetti { 
+            position: fixed; 
+            top: -20px; 
+            width: 10px; 
+            height: 10px; 
+            z-index: 3000;
+            animation: confetti-fall 3s linear forwards; 
+        }
+        @keyframes confetti-fall { to { transform: translateY(110vh) rotate(360deg); opacity: 0; } }
     </style>
 </head>
 <body>
     <div id="game-container">
-        <div class="title">🎮 PLATFORMER GAME</div>
+        <div class="title">🎮 ${projectName}</div>
         <canvas id="c"></canvas>
-        <div class="controls">
-            ⬅️ ➡️ Déplacement | ⬆️ Sauter | ENTER Recommencer
-        </div>
+        <div class="controls">⬅️ ➡️ Déplacement | ⬆️ Sauter | ENTER Recommencer</div>
     </div>
     
     <div id="victory-overlay">
@@ -1462,8 +1484,7 @@
     </div>
     
     <script>
-        const GAME_DATA = ${JSON.stringify(gameData)};
-        
+        const GAME_DATA = ${JSON.stringify(gameData).replace(/\\/g, '\\\\')};
         const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
         const victoryOverlay = document.getElementById('victory-overlay');
         const TILE = 40, ROWS = 15, COLS = 25;
@@ -1474,12 +1495,9 @@
         let currentLevelIndex = 0;
         let map = [];
         let enemyData = {};
-        
         let score = 0, timer = "0.00", startTime = 0, totalCoins = 0;
         let lastTime = performance.now();
         let completedLevelsCount = 0;
-        let victoryScore = 0;
-        
         let p = { x: 0, y: 0, vx: 0, vy: 0, w: 28, h: 36, ground: false };
         let inputs = {};
         let activeEnemies = [];
@@ -1487,14 +1505,21 @@
         function loadLevel() {
             const level = levels[currentLevelIndex];
             map = JSON.parse(JSON.stringify(level.map));
-            enemyData = JSON.parse(JSON.stringify(level.enemies));
+            enemyData = JSON.parse(JSON.stringify(level.enemies || {}));
             reset();
         }
 
-        function getEnemyParams(key) {
-            const data = enemyData[key];
-            if (!data) return { speed: 2, range: 3, dir: 1 };
-            return { speed: parseFloat(data.speed) || 2, range: parseInt(data.range) || 3, dir: parseInt(data.dir) || 1 };
+        function reset() {
+            let found = false;
+            map.forEach((r, y) => r.forEach((cell, x) => { if(cell === 'P') { p.x = x*TILE+6; p.y = y*TILE; found=true; } }));
+            if(!found) { p.x = TILE; p.y = TILE; }
+            p.vx = p.vy = 0; 
+            score = 0;
+            totalCoins = 0;
+            map.forEach((r) => r.forEach((cell) => { if(cell === 'C') totalCoins++; }));
+            startTime = Date.now();
+            initEnemies();
+            gameActive = true;
         }
 
         const initEnemies = () => {
@@ -1502,11 +1527,11 @@
             map.forEach((r, y) => {
                 r.forEach((cell, x) => {
                     if (cell === 'E') {
-                        const key = x + "," + y;
-                        const params = getEnemyParams(key);
+                        const data = enemyData[x + "," + y] || {speed:2, range:3, dir:1};
                         activeEnemies.push({
                             x: x * TILE, y: y * TILE + 4, w: 24, h: 28, startX: x * TILE,
-                            speed: params.speed * 0.5, range: params.range * TILE, dir: params.dir, vx: 0,
+                            speed: (parseFloat(data.speed)||2) * 0.5, range: (parseInt(data.range)||3) * TILE, 
+                            dir: parseInt(data.dir)||1, vx: 0,
                             color: "hsl(" + (Math.random() * 60 + 240) + ", 70%, 70%)"
                         });
                     }
@@ -1514,37 +1539,57 @@
             });
         };
 
-        const updateEnemies = (dt) => {
-            activeEnemies.forEach(enemy => {
-                enemy.vx = enemy.speed * enemy.dir;
-                enemy.x += enemy.vx * dt;
-                const x1 = Math.floor(enemy.x / TILE), x2 = Math.floor((enemy.x + enemy.w) / TILE);
-                const y1 = Math.floor(enemy.y / TILE), y2 = Math.floor((enemy.y + enemy.h) / TILE);
-                let hit = false;
-                for(let yy = y1; yy <= y2; yy++) {
-                    for(let xx = x1; xx <= x2; xx++) {
-                        if(map[yy] && map[yy][xx] === '#') hit = true;
-                    }
+        const loop = (timestamp) => {
+            let dt = Math.min((timestamp - lastTime) / 16.66, 2);
+            lastTime = timestamp;
+
+            // FIX CHRONO : On ne met à jour que si gameActive est vrai
+            if (gameActive) {
+                timer = ((Date.now() - startTime) / 1000).toFixed(2);
+                
+                // Logique de mise à jour uniquement si actif
+                if (inputs['ArrowLeft']) p.vx -= 1.2 * dt;
+                if (inputs['ArrowRight']) p.vx += 1.2 * dt;
+                p.vx *= Math.pow(0.8, dt); p.vy += 0.8 * dt;
+                p.x += p.vx * dt;
+                if (collide(p.x, p.y)) { p.x -= p.vx * dt; p.vx = 0; }
+                p.y += p.vy * dt; p.ground = false;
+                if (collide(p.x, p.y)) {
+                    if(p.vy > 0) p.ground = true;
+                    p.y -= p.vy * dt; p.vy = 0;
                 }
-                if (hit) { enemy.dir *= -1; enemy.x += enemy.vx * dt * 2; }
-                if (enemy.x > enemy.startX + enemy.range) { enemy.dir = -1; enemy.x = enemy.startX + enemy.range; }
-                else if (enemy.x < enemy.startX - enemy.range) { enemy.dir = 1; enemy.x = enemy.startX - enemy.range; }
-            });
-        };
-
-        const checkEnemyPlayerCollision = () => {
-            for(let enemy of activeEnemies) {
-                if (p.x < enemy.x + enemy.w && p.x + p.w > enemy.x && p.y < enemy.y + enemy.h && p.y + p.h > enemy.y) return true;
+                if (inputs['ArrowUp'] && p.ground) p.vy = -14;
+                
+                updateEnemies(dt);
+                checkTriggers();
             }
-            return false;
-        };
 
-        const drawTile = (t, x, y) => {
-            let px = x * TILE, py = y * TILE;
-            if (t === '#') { ctx.fillStyle = '#2d3436'; ctx.fillRect(px, py, TILE, TILE); ctx.strokeStyle="#111"; ctx.strokeRect(px,py,TILE,TILE); }
-            if (t === '^') { ctx.fillStyle = '#ff4757'; ctx.beginPath(); ctx.moveTo(px+5, py+TILE); ctx.lineTo(px+20, py+5); ctx.lineTo(px+35, py+TILE); ctx.fill(); }
-            if (t === 'C') { ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.arc(px+20, py+20, 8, 0, 7); ctx.fill(); }
-            if (t === 'F') { ctx.fillStyle = '#2ecc71'; ctx.fillRect(px+10, py+5, 4, TILE-5); ctx.fillRect(px+14, py+5, 20, 15); }
+            // Dessin (toujours actif pour voir le fond derrière l'overlay)
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            map.forEach((r, y) => r.forEach((t, x) => {
+                let px = x * TILE, py = y * TILE;
+                if (t === '#') { ctx.fillStyle = '#2d3436'; ctx.fillRect(px, py, TILE, TILE); }
+                if (t === '^') { ctx.fillStyle = '#ff4757'; ctx.beginPath(); ctx.moveTo(px+5, py+TILE); ctx.lineTo(px+20, py+5); ctx.lineTo(px+35, py+TILE); ctx.fill(); }
+                if (t === 'C') { ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.arc(px+20, py+20, 8, 0, 7); ctx.fill(); }
+                if (t === 'F') { ctx.fillStyle = '#2ecc71'; ctx.fillRect(px+10, py+5, 4, TILE-5); ctx.fillRect(px+14, py+5, 20, 15); }
+            }));
+
+            activeEnemies.forEach(enemy => {
+                ctx.fillStyle = enemy.color;
+                ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
+            });
+
+            ctx.fillStyle = '#00ff88';
+            ctx.fillRect(p.x, p.y, p.w, p.h);
+
+            // UI
+            ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+            ctx.fillRect(0, 0, canvas.width, 40);
+            ctx.fillStyle = "white"; ctx.font = "bold 16px sans-serif";
+            ctx.fillText("🟡 " + score + "/" + totalCoins, 20, 25);
+            ctx.fillText("⏱️ " + timer + "s", canvas.width - 100, 25);
+
+            requestAnimationFrame(loop);
         };
 
         const collide = (nx, ny) => {
@@ -1555,152 +1600,77 @@
             return false;
         };
 
+        const updateEnemies = (dt) => {
+            activeEnemies.forEach(enemy => {
+                enemy.vx = enemy.speed * enemy.dir;
+                enemy.x += enemy.vx * dt;
+                if (enemy.x > enemy.startX + enemy.range || enemy.x < enemy.startX - enemy.range) enemy.dir *= -1;
+            });
+        };
+
         const checkTriggers = () => {
             let tx = Math.floor((p.x + p.w/2) / TILE), ty = Math.floor((p.y + p.h/2) / TILE);
             if (map[ty] && map[ty][tx]) {
-                let tile = map[ty][tx];
-                if (tile === '^') reset();
-                if (tile === 'C') { map[ty][tx] = '.'; score++; }
-                if (tile === 'F') showVictoryScreen();
+                if (map[ty][tx] === '^') reset();
+                if (map[ty][tx] === 'C') { map[ty][tx] = '.'; score++; }
+                if (map[ty][tx] === 'F') showVictoryScreen();
             }
-            if (checkEnemyPlayerCollision()) reset();
             if (p.y > canvas.height) reset();
-        };
-
-        const reset = () => {
-            let found = false;
-            map.forEach((r, y) => r.forEach((cell, x) => { if(cell === 'P') { p.x = x*TILE+6; p.y = y*TILE; found=true; } }));
-            if(!found) { p.x = TILE; p.y = TILE; }
-            p.vx = p.vy = 0; score = 0;
-            totalCoins = 0;
-            map.forEach((r) => r.forEach((cell) => { if(cell === 'C') totalCoins++; }));
-            startTime = Date.now();
-            initEnemies();
-        };
-
-        const loop = (timestamp) => {
-            let dt = Math.min((timestamp - lastTime) / 16.66, 2);
-            lastTime = timestamp;
-            if (gameActive) {
-                timer = ((Date.now() - startTime) / 1000).toFixed(2);
+            for(let e of activeEnemies) {
+                if (p.x < e.x + e.w && p.x + p.w > e.x && p.y < e.y + e.h && p.y + p.h > e.y) reset();
             }
-            timer = ((Date.now() - startTime) / 1000).toFixed(2);
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            map.forEach((r, y) => r.forEach((t, x) => drawTile(t, x, y)));
-
-            updateEnemies(dt);
-            activeEnemies.forEach(enemy => {
-                ctx.fillStyle = enemy.color;
-                ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
-                ctx.fillStyle = '#000';
-                const eyeOffset = enemy.dir > 0 ? 4 : -4;
-                ctx.fillRect(enemy.x + 6 + eyeOffset, enemy.y + 6, 4, 4);
-                ctx.fillRect(enemy.x + 14 + eyeOffset, enemy.y + 6, 4, 4);
-            });
-
-            if (inputs['ArrowLeft']) p.vx -= 1.2 * dt;
-            if (inputs['ArrowRight']) p.vx += 1.2 * dt;
-            p.vx *= Math.pow(0.8, dt); p.vy += 0.8 * dt;
-
-            p.x += p.vx * dt;
-            if (collide(p.x, p.y)) { p.x -= p.vx * dt; p.vx = 0; }
-            p.y += p.vy * dt; p.ground = false;
-            if (collide(p.x, p.y)) {
-                if(p.vy > 0) p.ground = true;
-                p.y -= p.vy * dt; p.vy = 0;
-            }
-            if (inputs['ArrowUp'] && p.ground) p.vy = -14;
-            checkTriggers();
-
-            ctx.fillStyle = '#00ff88';
-            ctx.fillRect(p.x, p.y, p.w, p.h);
-
-            ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-            ctx.fillRect(0, 0, canvas.width, 40);
-            ctx.fillStyle = "white";
-            ctx.font = "bold 16px sans-serif";
-            ctx.fillText("🟡 " + score + "/" + totalCoins, 20, 25);
-            ctx.fillText("⏱️ " + timer + "s", canvas.width - 100, 25);
-
-            requestAnimationFrame(loop);
         };
 
         function showVictoryScreen() {
+            if (!gameActive) return;
             gameActive = false;
-            victoryScore = score;
-            const currentTime = timer;
-            const currentTotal = totalCoins;
             completedLevelsCount++;
             createConfetti();
 
-            setTimeout(() => {
-                document.getElementById('victory-score').textContent = victoryScore;
-                document.getElementById('victory-total').textContent = currentTotal;
-                document.getElementById('victory-time').textContent = currentTime + 's';
-                document.getElementById('victory-progress').textContent = completedLevelsCount + '/' + levels.length;
+            document.getElementById('victory-score').textContent = score;
+            document.getElementById('victory-total').textContent = totalCoins;
+            document.getElementById('victory-time').textContent = timer + 's';
+            document.getElementById('victory-progress').textContent = completedLevelsCount + '/' + levels.length;
 
-                const isLastLevel = (currentLevelIndex >= levels.length - 1);
-                const isPerfect = (victoryScore === currentTotal && currentTotal > 0);
-
-                if (isLastLevel) {
-                    document.getElementById('victory-title').textContent = isPerfect ? '🏆 PERFECT ! TOUS LES NIVEAUX TERMINÉS !' : '🏆 TOUS LES NIVEAUX TERMINÉS !';
-                    document.getElementById('next-level-btn').textContent = '🎮 Rejouer';
-                } else {
-                    document.getElementById('victory-title').textContent = isPerfect ? '⭐ PERFECT ! NIVEAU TERMINÉ !' : '🎉 NIVEAU TERMINÉ !';
-                    document.getElementById('next-level-btn').textContent = '➡️ Niveau suivant';
-                }
-
-                victoryOverlay.classList.add('visible');
-            }, 100);
+            if (currentLevelIndex >= levels.length - 1) {
+                document.getElementById('victory-title').textContent = '🏆 JEU TERMINÉ !';
+                document.getElementById('next-level-btn').textContent = '🎮 Rejouer';
+            } else {
+                document.getElementById('victory-title').textContent = '🎉 NIVEAU TERMINÉ !';
+                document.getElementById('next-level-btn').textContent = '➡️ Niveau suivant';
+            }
+            victoryOverlay.classList.add('visible');
         }
 
         function createConfetti() {
-            const colors = ['#ff0055', '#00ff88', '#ffaa00', '#a29bfe', '#f1c40f'];
             for (let i = 0; i < 50; i++) {
-                setTimeout(() => {
-                    const confetti = document.createElement('div');
-                    confetti.className = 'confetti';
-                    confetti.style.left = Math.random() * 100 + '%';
-                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
-                    confetti.style.animationDelay = Math.random() * 0.5 + 's';
-                    document.body.appendChild(confetti);
-                    setTimeout(() => confetti.remove(), 3000);
-                }, i * 30);
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.background = ['#ff0055', '#00ff88', '#ffaa00'][Math.floor(Math.random()*3)];
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 3000);
             }
         }
 
-        function clearConfetti() {
-            const confettis = document.querySelectorAll('.confetti');
-            confettis.forEach(c => c.remove());
-        }
-
         document.getElementById('restart-level-btn').onclick = () => {
-            gameActive = true;
-            clearConfetti();
             victoryOverlay.classList.remove('visible');
             reset();
         };
 
         document.getElementById('next-level-btn').onclick = () => {
-            gameActive = true;
-            clearConfetti();
             victoryOverlay.classList.remove('visible');
-
             if (currentLevelIndex >= levels.length - 1) {
                 currentLevelIndex = 0;
                 completedLevelsCount = 0;
-                loadLevel();
             } else {
                 currentLevelIndex++;
-                loadLevel();
             }
+            loadLevel();
         };
 
-        window.onkeydown = (e) => { 
-            inputs[e.code] = true; 
-            if(e.code==='Enter') reset();
-        };
+        window.onkeydown = (e) => { inputs[e.code] = true; if(e.code==='Enter') reset(); };
         window.onkeyup = (e) => inputs[e.code] = false;
 
         loadLevel();
@@ -1709,20 +1679,13 @@
 </body>
 </html>`;
 
-        const blob = new Blob([gameHTML], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'platformer-game.html';
-        a.click();
-        URL.revokeObjectURL(url);
-
-        // Feedback visuel
-        const btn = document.getElementById('export-game-btn');
-        const originalText = btn.textContent;
-        btn.textContent = '✓ JEU EXPORTÉ !';
-        setTimeout(() => { btn.textContent = originalText; }, 1500);
-    }
+    const blob = new Blob([gameHTML], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = projectName;
+    a.click();
+}
     
     window.deleteLevel = (index) => {
         if (levels.length === 1) {
@@ -1790,5 +1753,6 @@
     updateOutput();
     requestAnimationFrame(loop);
 </script>
-</body>
-</html>
+
+
+</body></html>
