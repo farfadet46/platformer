@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Platformer Studio v0.3b - Fixed</title>
+    <title>Platformer Studio v0.3c - Fixed</title>
     <style>
         :root { --accent: #ff0055; --bg: #0d0d12; --panel: #16161e; --success: #00ff88; --selected: #ffaa00; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
@@ -60,6 +60,160 @@
             -webkit-user-select: auto !important;
         }
         #level-out { user-select: text; -webkit-user-select: text; }
+        
+        /* Popup de gestion des niveaux */
+        #level-manager-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+        #level-manager-overlay.visible { display: flex; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        #level-manager {
+            background: var(--panel);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            padding: 30px;
+            width: 500px;
+            max-height: 70vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 50px rgba(255, 0, 85, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        #level-manager h2 {
+            margin: 0 0 20px 0;
+            color: var(--accent);
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .level-list {
+            background: #0d0d12;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .level-item {
+            background: #1e1e2e;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 2px solid transparent;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        
+        .level-item:hover {
+            background: #252530;
+            border-color: #444;
+        }
+        
+        .level-item.active {
+            border-color: var(--accent);
+            background: #2a1a2a;
+        }
+        
+        .level-item-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+        
+        .level-item-name {
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .level-item-stats {
+            font-size: 0.75em;
+            color: #888;
+        }
+        
+        .level-item-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .level-action-btn {
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: 0.2s;
+        }
+        
+        .level-action-btn:hover {
+            background: #444;
+            border-color: #777;
+        }
+        
+        .level-action-btn.danger:hover {
+            background: #ff0055;
+            border-color: #ff0055;
+        }
+        
+        .level-manager-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .level-manager-btn {
+            flex: 1;
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        
+        .level-manager-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        .level-manager-btn.secondary {
+            background: #333;
+        }
+        
+        .level-manager-btn.secondary:hover {
+            background: #444;
+        }
+    
     </style>
 </head>
 <body>
@@ -72,6 +226,7 @@
     
     <div class="section">
         <button id="play-btn">▶ TESTER LE NIVEAU</button>
+        <button id="level-manager-btn" style="background: #333; color: white; border: none; padding: 12px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1em; margin-top: 10px; transition: 0.2s;">🗂️ GESTION DES NIVEAUX</button>
         <div class="hint">1. Cliquez sur un ennemi 2. Réglez les sliders 3. Cliquez OK</div>
     </div>
 
@@ -116,6 +271,7 @@
     <div class="section" style="flex:1; display:flex; flex-direction:column;">
         <label>JSON :</label>
         <textarea id="level-out" style="width:100%; flex:1; background:#000; color:#0f0; font-family:monospace; border:none; padding:10px; margin-top:10px; font-size:10px; resize:none;" readonly></textarea>
+    
         
         <div class="file-ops">
             <button class="file-btn" onclick="saveMap()">💾 SAVE</button>
@@ -127,6 +283,25 @@
 
 <div id="game-container">
     <canvas id="c"></canvas>
+</div>
+
+<!-- Popup de gestion des niveaux -->
+<div id="level-manager-overlay">
+    <div id="level-manager">
+        <h2>🗂️ Gestion des niveaux</h2>
+        
+        <div class="level-list" id="level-list">
+            <!-- Les niveaux seront ajoutés ici dynamiquement -->
+        </div>
+        
+        <div class="level-manager-controls">
+            <button class="level-manager-btn" id="add-level-btn">➕ Nouveau niveau</button>
+        </div>
+        
+        <div class="level-manager-controls">
+            <button class="level-manager-btn secondary" id="close-level-manager-btn">✕ Fermer</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -142,6 +317,17 @@
     let score = 0, timer = "0.00", startTime = 0;
     let lastTime = performance.now();
     let lastLogTime = 0; // Pour limiter les logs dans la loop
+    
+    // Système multi-niveaux
+    let levels = [
+        {
+            id: 1,
+            name: "Niveau 1",
+            map: Array(ROWS).fill().map(() => Array(COLS).fill('.')),
+            enemies: {}
+        }
+    ];
+    let currentLevelIndex = 0;
     
     let p = { x: 0, y: 0, vx: 0, vy: 0, w: 28, h: 36, ground: false };
     let inputs = {};
@@ -241,12 +427,18 @@
     }
 
     function saveMap() {
-        const data = { map: map, enemies: enemyData, version: "0.3b" };
+        saveCurrentLevel(); // Sauvegarder le niveau actuel avant l'export
+        const data = { 
+            levels: levels,
+            currentLevelIndex: currentLevelIndex,
+            version: "0.4" 
+        };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = 'level.json'; a.click();
+        a.href = url; a.download = 'platformer-project.json'; a.click();
         URL.revokeObjectURL(url);
+        console.log('💾 Projet sauvegardé avec', levels.length, 'niveaux');
     }
 
     function loadMap() { document.getElementById('file-input').click(); }
@@ -256,15 +448,37 @@
         reader.onload = (ev) => { 
             try {
                 const data = JSON.parse(ev.target.result);
-                if (data.map) {
-                    map = data.map;
-                    enemyData = data.enemies || {};
-                    selectedEnemyPos = null;
-                    enemyPanel.classList.remove('editing');
-                    updateOutput();
+                
+                // Rétrocompatibilité avec l'ancien format (version 0.3b)
+                if (data.map && !data.levels) {
+                    console.log('📥 Ancien format détecté, conversion...');
+                    levels = [{
+                        id: 1,
+                        name: "Niveau importé",
+                        map: data.map,
+                        enemies: data.enemies || {}
+                    }];
+                    currentLevelIndex = 0;
+                } else if (data.levels) {
+                    // Nouveau format multi-niveaux
+                    console.log('📥 Nouveau format détecté');
+                    levels = data.levels;
+                    currentLevelIndex = data.currentLevelIndex || 0;
+                    
+                    // Vérifier que l'index est valide
+                    if (currentLevelIndex >= levels.length) {
+                        currentLevelIndex = 0;
+                    }
+                } else {
+                    throw new Error("Format invalide");
                 }
+                
+                loadCurrentLevel();
+                console.log('✅ Projet chargé avec', levels.length, 'niveau(x)');
+                
             } catch(err) {
-                alert("Erreur de chargement");
+                console.error('❌ Erreur de chargement:', err);
+                alert("Erreur de chargement du fichier");
             }
         };
         reader.readAsText(e.target.files[0]);
@@ -644,7 +858,12 @@
     }
     
     function updateOutput() {
-        const data = { map: map, enemies: enemyData, version: "0.3b" };
+        saveCurrentLevel(); // Auto-save dans le tableau
+        const data = { 
+            levels: levels,
+            currentLevelIndex: currentLevelIndex,
+            version: "0.4" 
+        };
         levelOut.value = JSON.stringify(data, null, 2);
     }
 
@@ -663,6 +882,168 @@
     playBtn.onclick = togglePlay;
     window.onkeydown = (e) => { inputs[e.code] = true; if(e.code==='Enter' && e.target.tagName !== 'SELECT') togglePlay(); };
     window.onkeyup = (e) => inputs[e.code] = false;
+    
+    // === GESTION DES NIVEAUX ===
+    
+    const levelManagerOverlay = document.getElementById('level-manager-overlay');
+    const levelManagerBtn = document.getElementById('level-manager-btn');
+    const closeLevelManagerBtn = document.getElementById('close-level-manager-btn');
+    const addLevelBtn = document.getElementById('add-level-btn');
+    const levelListEl = document.getElementById('level-list');
+    
+    // Charger le niveau actuel depuis le tableau levels
+    function loadCurrentLevel() {
+        const level = levels[currentLevelIndex];
+        map = JSON.parse(JSON.stringify(level.map)); // Deep copy
+        enemyData = JSON.parse(JSON.stringify(level.enemies)); // Deep copy
+        selectedEnemyPos = null;
+        enemyPanel.classList.remove('editing');
+        updateOutput();
+        console.log('📥 Niveau chargé:', level.name);
+    }
+    
+    // Sauvegarder le niveau actuel dans le tableau levels
+    function saveCurrentLevel() {
+        const level = levels[currentLevelIndex];
+        level.map = JSON.parse(JSON.stringify(map)); // Deep copy
+        level.enemies = JSON.parse(JSON.stringify(enemyData)); // Deep copy
+        console.log('💾 Niveau sauvegardé:', level.name);
+    }
+    
+    // Afficher la liste des niveaux
+    function renderLevelList() {
+        levelListEl.innerHTML = '';
+        
+        levels.forEach((level, index) => {
+            const div = document.createElement('div');
+            div.className = 'level-item' + (index === currentLevelIndex ? ' active' : '');
+            
+            // Compter les éléments
+            let enemyCount = Object.keys(level.enemies).length;
+            let hasPlayer = JSON.stringify(level.map).includes('"P"');
+            let hasFlag = JSON.stringify(level.map).includes('"F"');
+            
+            div.innerHTML = `
+                <div class="level-item-info">
+                    <div>
+                        <div class="level-item-name">${level.name}</div>
+                        <div class="level-item-stats">👾 ${enemyCount} | ${hasPlayer ? '🏃' : '❌'} | ${hasFlag ? '🚩' : '❌'}</div>
+                    </div>
+                </div>
+                <div class="level-item-actions">
+                    ${index > 0 ? '<button class="level-action-btn" onclick="moveLevelUp(' + index + ')">⬆️</button>' : ''}
+                    ${index < levels.length - 1 ? '<button class="level-action-btn" onclick="moveLevelDown(' + index + ')">⬇️</button>' : ''}
+                    <button class="level-action-btn danger" onclick="deleteLevel(' + index + ')">🗑️</button>
+                </div>
+            `;
+            
+            // Clic pour sélectionner
+            div.querySelector('.level-item-info').onclick = () => {
+                if (index !== currentLevelIndex) {
+                    saveCurrentLevel();
+                    currentLevelIndex = index;
+                    loadCurrentLevel();
+                    renderLevelList();
+                }
+            };
+            
+            levelListEl.appendChild(div);
+        });
+    }
+    
+    // Ouvrir le popup
+    levelManagerBtn.onclick = () => {
+        saveCurrentLevel(); // Sauvegarder avant d'ouvrir
+        renderLevelList();
+        levelManagerOverlay.classList.add('visible');
+    };
+    
+    // Fermer le popup
+    closeLevelManagerBtn.onclick = () => {
+        levelManagerOverlay.classList.remove('visible');
+    };
+    
+    // Fermer en cliquant sur l'overlay
+    levelManagerOverlay.onclick = (e) => {
+        if (e.target === levelManagerOverlay) {
+            levelManagerOverlay.classList.remove('visible');
+        }
+    };
+    
+    // Ajouter un nouveau niveau
+    addLevelBtn.onclick = () => {
+        const newLevel = {
+            id: Date.now(),
+            name: `Niveau ${levels.length + 1}`,
+            map: Array(ROWS).fill().map(() => Array(COLS).fill('.')),
+            enemies: {}
+        };
+        levels.push(newLevel);
+        renderLevelList();
+        console.log('➕ Nouveau niveau créé:', newLevel.name);
+    };
+    
+    // Supprimer un niveau
+    window.deleteLevel = (index) => {
+        if (levels.length === 1) {
+            alert("Impossible de supprimer le dernier niveau !");
+            return;
+        }
+        
+        if (!confirm(`Supprimer "${levels[index].name}" ?`)) {
+            return;
+        }
+        
+        levels.splice(index, 1);
+        
+        // Ajuster l'index actuel si nécessaire
+        if (currentLevelIndex >= levels.length) {
+            currentLevelIndex = levels.length - 1;
+        }
+        if (currentLevelIndex === index) {
+            loadCurrentLevel();
+        }
+        
+        renderLevelList();
+        console.log('🗑️ Niveau supprimé');
+    };
+    
+    // Déplacer un niveau vers le haut
+    window.moveLevelUp = (index) => {
+        if (index === 0) return;
+        
+        [levels[index - 1], levels[index]] = [levels[index], levels[index - 1]];
+        
+        // Ajuster l'index actuel
+        if (currentLevelIndex === index) {
+            currentLevelIndex = index - 1;
+        } else if (currentLevelIndex === index - 1) {
+            currentLevelIndex = index;
+        }
+        
+        renderLevelList();
+        console.log('⬆️ Niveau déplacé vers le haut');
+    };
+    
+    // Déplacer un niveau vers le bas
+    window.moveLevelDown = (index) => {
+        if (index === levels.length - 1) return;
+        
+        [levels[index], levels[index + 1]] = [levels[index + 1], levels[index]];
+        
+        // Ajuster l'index actuel
+        if (currentLevelIndex === index) {
+            currentLevelIndex = index + 1;
+        } else if (currentLevelIndex === index + 1) {
+            currentLevelIndex = index;
+        }
+        
+        renderLevelList();
+        console.log('⬇️ Niveau déplacé vers le bas');
+    };
+    
+    // Charger le premier niveau au démarrage
+    loadCurrentLevel();
     
     updateOutput();
     requestAnimationFrame(loop);
