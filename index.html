@@ -2,12 +2,12 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Ultimate Platformer Studio Pro - Restauration</title>
+    <title>Platformer Studio v0.3b - Fixed</title>
     <style>
-        :root { --accent: #ff0055; --bg: #0d0d12; --panel: #16161e; }
+        :root { --accent: #ff0055; --bg: #0d0d12; --panel: #16161e; --success: #00ff88; --selected: #ffaa00; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
         
-        #editor-ui { width: 300px; background: var(--panel); display: flex; flex-direction: column; border-right: 2px solid #222; z-index: 10; }
+        #editor-ui { width: 320px; background: var(--panel); display: flex; flex-direction: column; border-right: 2px solid #222; z-index: 10; overflow-y: auto; user-select: none; -webkit-user-select: none; pointer-events: auto ; }
         .section { padding: 20px; border-bottom: 1px solid #333; }
         .palette { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
         .tile-opt { width: 50px; height: 50px; background: #222; border: 2px solid #444; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: 0.2s; }
@@ -17,27 +17,62 @@
         #game-container { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #1a1a2e 0%, #0d0d12 100%); }
         canvas { background: transparent; box-shadow: 0 0 40px rgba(0,0,0,0.5); image-rendering: pixelated; }
         
-        #play-btn { background: var(--accent); color: white; border: none; padding: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1.1em; margin-bottom: 5px; }
-        #play-btn.playing { background: #00ff88; color: #000; }
+        #play-btn { background: var(--accent); color: white; border: none; padding: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1.1em; transition: 0.3s; }
+        #play-btn.playing { background: var(--success); color: #000; }
         
         .file-ops { display: flex; gap: 10px; margin-top: 10px; }
         .file-btn { flex: 1; background: #333; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
         .file-btn:hover { background: #444; border-color: #666; }
 
         .hint { font-size: 0.8em; color: #888; margin-top: 10px; }
+        
+        #enemy-panel { display: none; background: #1e1e2e; border-radius: 8px; padding: 15px; margin-top: 10px; border: 1px solid #333; pointer-events: auto ; }
+        #enemy-panel.visible { display: block; animation: slideIn 0.3s ease; }
+        #enemy-panel.editing { border-color: var(--selected); box-shadow: 0 0 10px rgba(255, 170, 0, 0.3); }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .param-group { margin-bottom: 12px; }
+        .param-group label { display: block; font-size: 0.85em; color: #aaa; margin-bottom: 5px; }
+        .param-group input[type="range"] { width: 100%; background: #333; }
+        .param-value { float: right; color: var(--accent); font-weight: bold; }
+        
+        .selection-indicator { font-size: 0.8em; color: var(--selected); margin-bottom: 8px; display: none; }
+        #enemy-panel.editing .selection-indicator { display: block; }
+        
+        #apply-btn { 
+            background: var(--success); 
+            color: #000; 
+            border: none; 
+            padding: 10px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            width: 100%; 
+            font-weight: bold; 
+            margin-top: 10px;
+            transition: 0.2s;
+        }
+        #apply-btn:hover { opacity: 0.9; }
+        #apply-btn:active { transform: scale(0.98); }
+        
+        input[type="range"], select, textarea {
+            pointer-events: auto !important;
+            user-select: auto !important;
+            -webkit-user-select: auto !important;
+        }
+        #level-out { user-select: text; -webkit-user-select: text; }
     </style>
 </head>
 <body>
 
 <div id="editor-ui">
     <div class="section">
-        <h2 style="margin:0">Studio Pro</h2>
-        <div class="hint">Version Restaurée & Stable</div>
+        <h2 style="margin:0">Platformer Studio</h2>
+        <div class="hint">Version 0.3b - Fixed</div>
     </div>
     
     <div class="section">
         <button id="play-btn">▶ TESTER LE NIVEAU</button>
-        <div class="hint">Appuyez sur <b>ENTRÉE</b></div>
+        <div class="hint">1. Cliquez sur un ennemi 2. Réglez les sliders 3. Cliquez OK</div>
     </div>
 
     <div class="section">
@@ -51,17 +86,42 @@
             <div class="tile-opt" data-id="P" title="Joueur">🏃</div>
             <div class="tile-opt" data-id="F" title="Drapeau">🚩</div>
         </div>
+        
+        <div id="enemy-panel">
+            <div class="selection-indicator">✏️ Ennemi sélectionné</div>
+            <div style="color: var(--accent); font-weight: bold; margin-bottom: 10px; font-size: 0.9em;">⚙️ PARAMÈTRES</div>
+            
+            <div class="param-group">
+                <label>Vitesse <span class="param-value" id="speed-val">2.0</span></label>
+                <input type="range" id="enemy-speed" min="0.5" max="8" step="0.5" value="2">
+            </div>
+            
+            <div class="param-group">
+                <label>Zone (tiles) <span class="param-value" id="range-val">3</span></label>
+                <input type="range" id="enemy-range" min="1" max="10" step="1" value="3">
+            </div>
+            
+            <div class="param-group">
+                <label>Direction</label>
+                <select id="enemy-dir" style="width: 100%; background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px;">
+                    <option value="1">→ Droite</option>
+                    <option value="-1">← Gauche</option>
+                </select>
+            </div>
+            
+            <button id="apply-btn">✓ APPLIQUER</button>
+        </div>
     </div>
 
     <div class="section" style="flex:1; display:flex; flex-direction:column;">
-        <label>Code Source :</label>
+        <label>JSON :</label>
         <textarea id="level-out" style="width:100%; flex:1; background:#000; color:#0f0; font-family:monospace; border:none; padding:10px; margin-top:10px; font-size:10px; resize:none;" readonly></textarea>
         
         <div class="file-ops">
-            <button class="file-btn" onclick="saveMap()">💾 ENREGISTRER</button>
-            <button class="file-btn" onclick="loadMap()">📁 CHARGER</button>
+            <button class="file-btn" onclick="saveMap()">💾 SAVE</button>
+            <button class="file-btn" onclick="loadMap()">📁 LOAD</button>
         </div>
-        <input type="file" id="file-input" style="display:none" accept=".txt">
+        <input type="file" id="file-input" style="display:none" accept=".json,.txt">
     </div>
 </div>
 
@@ -72,6 +132,7 @@
 <script>
     const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
     const playBtn = document.getElementById('play-btn'), levelOut = document.getElementById('level-out');
+    const enemyPanel = document.getElementById('enemy-panel');
     
     const TILE = 40, ROWS = 15, COLS = 25;
     canvas.width = COLS * TILE; canvas.height = ROWS * TILE;
@@ -80,36 +141,242 @@
     let currentTile = '#', isPlaying = false;
     let score = 0, timer = "0.00", startTime = 0;
     let lastTime = performance.now();
+    let lastLogTime = 0; // Pour limiter les logs dans la loop
     
     let p = { x: 0, y: 0, vx: 0, vy: 0, w: 28, h: 36, ground: false };
     let inputs = {};
+    
+    let enemyData = {};
+    let activeEnemies = [];
+    let selectedEnemyPos = null;
+    
+    // UI refs
+    const speedInput = document.getElementById('enemy-speed');
+    const rangeInput = document.getElementById('enemy-range');
+    const dirInput = document.getElementById('enemy-dir');
+    const speedVal = document.getElementById('speed-val');
+    const rangeVal = document.getElementById('range-val');
+    const applyBtn = document.getElementById('apply-btn');
+
+    // Mise à jour des labels avec debug
+    speedInput.oninput = function(e) {
+        console.log('🎚️ SPEED oninput déclenché:', this.value);
+        speedVal.textContent = parseFloat(this.value).toFixed(1);
+        e.stopPropagation(); // Empêcher la propagation
+    };
+    
+    rangeInput.oninput = function(e) {
+        console.log('🎚️ RANGE oninput déclenché:', this.value);
+        rangeVal.textContent = this.value;
+        e.stopPropagation(); // Empêcher la propagation
+    };
+    
+    dirInput.onchange = function(e) {
+        console.log('🎚️ DIRECTION changée:', this.value);
+        e.stopPropagation(); // Empêcher la propagation
+    };
+
+    // Charger les valeurs d'un ennemi dans les sliders
+    function loadEnemyToUI(key) {
+        console.log('📥 loadEnemyToUI appelée pour:', key);
+        console.log('📦 Données actuelles enemyData[key]:', enemyData[key]);
+        
+        const data = enemyData[key];
+        if (!data) {
+            console.log('⚠️ Pas de données, utilisation des valeurs par défaut');
+            speedInput.value = 2;
+            rangeInput.value = 3;
+            dirInput.value = 1;
+        } else {
+            console.log('✅ Chargement des valeurs:', data);
+            speedInput.value = parseFloat(data.speed) || 2;
+            rangeInput.value = parseInt(data.range) || 3;
+            dirInput.value = parseInt(data.dir) || 1;
+        }
+        speedVal.textContent = parseFloat(speedInput.value).toFixed(1);
+        rangeVal.textContent = rangeInput.value;
+        
+        console.log('🎯 Sliders mis à jour - Speed:', speedInput.value, 'Range:', rangeInput.value, 'Dir:', dirInput.value);
+    }
+
+    // Bouton OK - Sauvegarde explicite
+    applyBtn.onclick = function() {
+        console.log('💾 Bouton APPLIQUER cliqué');
+        console.log('🎯 selectedEnemyPos:', selectedEnemyPos);
+        
+        if (!selectedEnemyPos) {
+            console.log('❌ Aucun ennemi sélectionné');
+            return;
+        }
+        
+        const speed = parseFloat(speedInput.value);
+        const range = parseInt(rangeInput.value);
+        const dir = parseInt(dirInput.value);
+        
+        console.log('📊 Valeurs à sauvegarder - Speed:', speed, 'Range:', range, 'Dir:', dir);
+        
+        enemyData[selectedEnemyPos] = { speed, range, dir };
+        
+        console.log('✅ Données sauvegardées dans enemyData:', enemyData);
+        
+        const originalText = this.textContent;
+        this.textContent = "✓ SAUVEGARDÉ !";
+        this.style.background = "#00ff88";
+        setTimeout(() => {
+            this.textContent = originalText;
+            this.style.background = "var(--success)";
+        }, 600);
+        
+        updateOutput();
+    };
+
+    function getEnemyParams(key) {
+        const data = enemyData[key];
+        if (!data) return { speed: 2, range: 3, dir: 1 };
+        return {
+            speed: parseFloat(data.speed) || 2,
+            range: parseInt(data.range) || 3,
+            dir: parseInt(data.dir) || 1
+        };
+    }
 
     function saveMap() {
-        const blob = new Blob([levelOut.value], { type: 'text/plain' });
+        const data = { map: map, enemies: enemyData, version: "0.3b" };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = 'mon_niveau.txt'; a.click();
+        a.href = url; a.download = 'level.json'; a.click();
+        URL.revokeObjectURL(url);
     }
 
     function loadMap() { document.getElementById('file-input').click(); }
 
     document.getElementById('file-input').onchange = (e) => {
         const reader = new FileReader();
-        reader.onload = (ev) => { levelOut.value = ev.target.result; loadLevelFromSource(); };
+        reader.onload = (ev) => { 
+            try {
+                const data = JSON.parse(ev.target.result);
+                if (data.map) {
+                    map = data.map;
+                    enemyData = data.enemies || {};
+                    selectedEnemyPos = null;
+                    enemyPanel.classList.remove('editing');
+                    updateOutput();
+                }
+            } catch(err) {
+                alert("Erreur de chargement");
+            }
+        };
         reader.readAsText(e.target.files[0]);
     };
 
-    const loadLevelFromSource = () => {
-        const lines = levelOut.value.trim().split('\n');
-        if (lines.length >= ROWS) map = lines.slice(0, ROWS).map(l => l.split('').slice(0, COLS));
+    const initEnemies = () => {
+        console.log('👾 initEnemies appelée');
+        console.log('🗺️ Map actuelle:', map);
+        console.log('📦 enemyData actuelle:', enemyData);
+        
+        activeEnemies = [];
+        map.forEach((r, y) => {
+            r.forEach((cell, x) => {
+                if (cell === 'E') {
+                    const key = `${x},${y}`;
+                    const params = getEnemyParams(key);
+                    console.log(`➕ Ennemi trouvé en (${x},${y}) avec params:`, params);
+                    
+                    activeEnemies.push({
+                        x: x * TILE, 
+                        y: y * TILE + 4, 
+                        w: 24, 
+                        h: 28,
+                        startX: x * TILE,
+                        speed: params.speed * 0.5,
+                        range: params.range * TILE,
+                        dir: params.dir,
+                        vx: 0,
+                        color: `hsl(${Math.random() * 60 + 240}, 70%, 70%)`
+                    });
+                }
+            });
+        });
+        
+        console.log('✅ Ennemis actifs créés:', activeEnemies.length, activeEnemies);
+    };
+
+    const updateEnemies = (dt) => {
+        activeEnemies.forEach(enemy => {
+            enemy.vx = enemy.speed * enemy.dir;
+            enemy.x += enemy.vx * dt;
+            
+            const x1 = Math.floor(enemy.x / TILE);
+            const x2 = Math.floor((enemy.x + enemy.w) / TILE);
+            const y1 = Math.floor(enemy.y / TILE);
+            const y2 = Math.floor((enemy.y + enemy.h) / TILE);
+            
+            let hit = false;
+            for(let yy = y1; yy <= y2; yy++) {
+                for(let xx = x1; xx <= x2; xx++) {
+                    if(map[yy] && map[yy][xx] === '#') hit = true;
+                }
+            }
+            
+            if (hit) {
+                enemy.dir *= -1;
+                enemy.x += enemy.vx * dt * 2;
+            }
+            
+            if (enemy.x > enemy.startX + enemy.range) {
+                enemy.dir = -1;
+                enemy.x = enemy.startX + enemy.range;
+            } else if (enemy.x < enemy.startX - enemy.range) {
+                enemy.dir = 1;
+                enemy.x = enemy.startX - enemy.range;
+            }
+        });
+    };
+
+    const checkEnemyPlayerCollision = () => {
+        for(let enemy of activeEnemies) {
+            if (p.x < enemy.x + enemy.w && p.x + p.w > enemy.x &&
+                p.y < enemy.y + enemy.h && p.y + p.h > enemy.y) {
+                return true;
+            }
+        }
+        return false;
     };
 
     const drawTile = (t, x, y) => {
         let px = x * TILE, py = y * TILE;
+        const key = `${x},${y}`;
+        
         if (t === '#') { ctx.fillStyle = '#2d3436'; ctx.fillRect(px, py, TILE, TILE); ctx.strokeStyle="#111"; ctx.strokeRect(px,py,TILE,TILE); }
         if (t === '^') { ctx.fillStyle = '#ff4757'; ctx.beginPath(); ctx.moveTo(px+5, py+TILE); ctx.lineTo(px+20, py+5); ctx.lineTo(px+35, py+TILE); ctx.fill(); }
         if (t === 'C') { ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.arc(px+20, py+20, 8, 0, 7); ctx.fill(); }
-        if (t === 'E') { ctx.fillStyle = '#a29bfe'; ctx.fillRect(px+8, py+12, 24, 28); }
+        if (t === 'E' && !isPlaying) { 
+            const isSel = (selectedEnemyPos === key);
+            ctx.fillStyle = isSel ? '#ffaa00' : '#a29bfe'; 
+            ctx.fillRect(px+8, py+12, 24, 28);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(px+12, py+18, 4, 4);
+            ctx.fillRect(px+24, py+18, 4, 4);
+            
+            if (isSel) {
+                ctx.strokeStyle = '#ffaa00';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(px+6, py+10, 28, 32);
+                ctx.lineWidth = 1;
+            }
+            
+            if (enemyData[key]) {
+                ctx.strokeStyle = isSel ? '#ffaa00' : '#ff0055';
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                const r = (parseInt(enemyData[key].range) || 3) * TILE;
+                ctx.moveTo(px + 20 - r, py + 5);
+                ctx.lineTo(px + 20 + r, py + 5);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
         if (t === 'P' && !isPlaying) { ctx.strokeStyle = '#00ff88'; ctx.strokeRect(px+5, py+5, TILE-10, TILE-10); }
         if (t === 'F') { ctx.fillStyle = '#2ecc71'; ctx.fillRect(px+10, py+5, 4, TILE-5); ctx.fillRect(px+14, py+5, 20, 15); }
     };
@@ -127,19 +394,48 @@
         let ty = Math.floor((p.y + p.h/2) / TILE);
         if (map[ty] && map[ty][tx]) {
             let tile = map[ty][tx];
-            if (tile === '^' || tile === 'E') reset();
+            if (tile === '^') reset();
             if (tile === 'C') { map[ty][tx] = '.'; score++; }
-            if (tile === 'F') { alert(`VICTOIRE ! Score: ${score}`); togglePlay(); }
+            if (tile === 'F') { 
+                setTimeout(() => {
+                    if(isPlaying) {
+                        alert(`VICTOIRE !\nScore: ${score}\nTemps: ${timer}s`); 
+                        togglePlay(); 
+                    }
+                }, 100);
+            }
         }
+        if (checkEnemyPlayerCollision()) reset();
         if (p.y > canvas.height) reset();
     };
 
     const reset = () => {
-        loadLevelFromSource();
+        console.log('🔄 Reset appelé - isPlaying:', isPlaying);
+        
         let found = false;
-        map.forEach((r, y) => r.forEach((cell, x) => { if(cell === 'P') { p.x = x*TILE+6; p.y = y*TILE; found=true; } }));
-        if(!found) { p.x = TILE; p.y = TILE; }
-        p.vx = p.vy = 0; score = 0;
+        map.forEach((r, y) => r.forEach((cell, x) => { 
+            if(cell === 'P') { 
+                p.x = x*TILE+6; 
+                p.y = y*TILE; 
+                found=true;
+                console.log('🏃 Joueur placé en:', p.x, p.y);
+            } 
+        }));
+        if(!found) { 
+            p.x = TILE; 
+            p.y = TILE;
+            console.log('⚠️ Pas de P trouvé, position par défaut');
+        }
+        p.vx = p.vy = 0; 
+        score = 0;
+        startTime = Date.now();
+        
+        if(isPlaying) {
+            console.log('🎮 Mode jeu actif - Initialisation des ennemis');
+            initEnemies();
+        } else {
+            console.log('✏️ Mode édition - Pas d\'init ennemis');
+        }
     };
 
     const loop = (timestamp) => {
@@ -151,6 +447,27 @@
 
         if (isPlaying) {
             timer = ((Date.now() - startTime) / 1000).toFixed(2);
+            updateEnemies(dt);
+            
+            // Log seulement 1x par seconde pour éviter le spam
+            if (Date.now() - lastLogTime > 1000) {
+                console.log('🎮 Frame - activeEnemies.length:', activeEnemies.length);
+                lastLogTime = Date.now();
+            }
+            
+            activeEnemies.forEach(enemy => {
+                ctx.fillStyle = enemy.color;
+                ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
+                ctx.fillStyle = '#000';
+                const eyeOffset = enemy.dir > 0 ? 4 : -4;
+                ctx.fillRect(enemy.x + 6 + eyeOffset, enemy.y + 6, 4, 4);
+                ctx.fillRect(enemy.x + 14 + eyeOffset, enemy.y + 6, 4, 4);
+                ctx.fillStyle = '#666';
+                const legOffset = Math.sin(Date.now() / 100) * 3;
+                ctx.fillRect(enemy.x + 6, enemy.y + 24 + legOffset, 4, 6);
+                ctx.fillRect(enemy.x + 14, enemy.y + 24 - legOffset, 4, 6);
+            });
+            
             if (inputs['ArrowLeft']) p.vx -= 1.2 * dt;
             if (inputs['ArrowRight']) p.vx += 1.2 * dt;
             p.vx *= Math.pow(0.8, dt); p.vy += 0.8 * dt;
@@ -168,49 +485,186 @@
             ctx.fillRect(p.x, p.y, p.w, p.h);
         }
         
-        drawHUD();
+        ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; 
+        ctx.fillRect(0, 0, canvas.width, 40);
+        ctx.fillStyle = "white"; 
+        ctx.font = "bold 16px sans-serif";
+        ctx.fillText(`🟡 ${score}`, 20, 25);
+        ctx.fillText(`⏱️ ${timer}s`, canvas.width - 100, 25);
+        
         requestAnimationFrame(loop);
     };
 
-    const drawHUD = () => {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; ctx.fillRect(0, 0, canvas.width, 40);
-        ctx.fillStyle = "white"; ctx.font = "bold 16px sans-serif";
-        ctx.fillText(`🟡 PIÈCES : ${score}`, 20, 25);
-        ctx.fillText(`⏱️ TEMPS : ${timer}s`, canvas.width - 150, 25);
-    };
-
     const togglePlay = () => {
+        console.log('🎮 togglePlay - isPlaying avant:', isPlaying);
+        
         if (!isPlaying) {
-            if (!levelOut.value.includes('P') || !levelOut.value.includes('F')) return alert("Il manque le joueur ou le drapeau !");
-            startTime = Date.now(); reset();
-        } else { loadLevelFromSource(); }
-        isPlaying = !isPlaying;
-        playBtn.innerText = isPlaying ? "⏹ ARRÊTER" : "▶ TESTER";
+            if (!JSON.stringify(map).includes('P') || !JSON.stringify(map).includes('F')) {
+                console.log('❌ Manque P ou F');
+                return alert("Il manque P ou F !");
+            }
+            console.log('▶️ Démarrage du jeu');
+            
+            // IMPORTANT : Mettre isPlaying à true AVANT reset() !
+            isPlaying = true;
+            reset();
+        } else {
+            console.log('⏹️ Arrêt du jeu');
+            isPlaying = false;
+            activeEnemies = [];
+        }
+        
+        playBtn.textContent = isPlaying ? "⏹ STOP" : "▶ TEST";
+        playBtn.classList.toggle('playing', isPlaying);
+        
+        console.log('🎮 isPlaying après:', isPlaying);
     };
 
-    canvas.onmousedown = (e) => { canvas.isDrawing = true; edit(e); };
-    window.onmouseup = () => canvas.isDrawing = false;
-    canvas.onmousemove = (e) => { if(canvas.isDrawing) edit(e); };
-    function edit(e) {
-        if (isPlaying) return;
-        const rect = canvas.getBoundingClientRect();
-        const x = Math.floor((e.clientX - rect.left) / TILE), y = Math.floor((e.clientY - rect.top) / TILE);
-        if (y >= 0 && y < ROWS && x >= 0 && x < COLS) {
-            if (currentTile === 'P') map.forEach(r => r.forEach((c,i) => { if(c==='P') r[i]='.'; }));
-            map[y][x] = currentTile;
-            levelOut.value = map.map(r => r.join('')).join('\n');
+    canvas.onmousedown = (e) => {
+        console.log('🖱️ Canvas mousedown - target:', e.target.tagName);
+        
+        // Bloquer SEULEMENT si on clique directement sur un input/select/button
+        if(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'TEXTAREA') {
+            console.log('⛔ Clic sur contrôle UI - ignoré');
+            return;
         }
+        
+        // Vérifier si on est dans le panel UI (mais pas sur le canvas)
+        if(e.target !== canvas) {
+            console.log('⛔ Clic hors canvas - ignoré');
+            return;
+        }
+        
+        console.log('✅ Clic valide sur le canvas');
+        canvas.isDrawing = true; 
+        handleCanvasClick(e); 
+    };
+    
+    window.onmouseup = () => {
+        if (canvas.isDrawing) {
+            console.log('🖱️ Mouse up - arrêt dessin');
+        }
+        canvas.isDrawing = false;
+    };
+    
+    canvas.onmousemove = (e) => { 
+        if(canvas.isDrawing) {
+            console.log('🖱️ Mouse move - dessin en cours');
+            handleCanvasClick(e);
+        }
+    };
+    
+    function handleCanvasClick(e) {
+        console.log('🖱️ handleCanvasClick - target:', e.target.tagName, 'isPlaying:', isPlaying);
+        
+        if (isPlaying) return;
+        
+        // IMPORTANT: Ne pas traiter les clics sur les inputs/sliders !
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+            console.log('⛔ Clic ignoré - c\'est un input');
+            return;
+        }
+        
+        const rect = canvas.getBoundingClientRect();
+        const x = Math.floor((e.clientX - rect.left) / TILE);
+        const y = Math.floor((e.clientY - rect.top) / TILE);
+        
+        console.log('📍 Position canvas - x:', x, 'y:', y);
+        
+        if (y < 0 || y >= ROWS || x < 0 || x >= COLS) return;
+
+        const key = `${x},${y}`;
+        console.log('🔑 Key:', key, 'currentTile:', currentTile);
+
+        // Déplacement automatique pour P et F : supprimer l'ancien
+        if (currentTile === 'P' || currentTile === 'F') {
+            console.log('🔄 Déplacement de', currentTile);
+            // Supprimer l'ancien P ou F
+            for(let r = 0; r < ROWS; r++) {
+                for(let c = 0; c < COLS; c++) {
+                    if (map[r][c] === currentTile) {
+                        map[r][c] = '.';
+                        console.log('🗑️ Ancien', currentTile, 'supprimé de', c, r);
+                    }
+                }
+            }
+            // Placer le nouveau
+            map[y][x] = currentTile;
+            console.log('✅ Nouveau', currentTile, 'placé en', x, y);
+            updateOutput();
+            return;
+        }
+
+        if (currentTile === 'E') {
+            // Placement d'un nouvel ennemi
+            if (map[y][x] !== 'E') {
+                console.log('➕ Placement nouvel ennemi');
+                map[y][x] = 'E';
+                // Créer avec les valeurs par défaut si pas encore d'ennemi sélectionné
+                if (!enemyData[key]) {
+                    enemyData[key] = {
+                        speed: 2,
+                        range: 3,
+                        dir: 1
+                    };
+                    console.log('🆕 Nouvelles données créées:', enemyData[key]);
+                }
+                updateOutput();
+            } else {
+                console.log('🔄 Ennemi déjà présent, sélection');
+            }
+            
+            // Sélection : charger les valeurs EXISTANTES de cet ennemi
+            selectedEnemyPos = key;
+            loadEnemyToUI(key);
+            
+            enemyPanel.classList.add('visible', 'editing');
+        } else {
+            // Clic sur ennemi existant pour le sélectionner (même si on n'est pas en mode E)
+            if (map[y][x] === 'E' && currentTile !== '.') {
+                console.log('👆 Sélection d\'un ennemi existant');
+                selectedEnemyPos = key;
+                loadEnemyToUI(key);
+                enemyPanel.classList.add('visible', 'editing');
+                return;
+            }
+            
+            // Suppression d'un ennemi avec la gomme
+            if (currentTile === '.' && map[y][x] === 'E') {
+                console.log('🗑️ Suppression ennemi');
+                delete enemyData[key];
+                if (selectedEnemyPos === key) {
+                    selectedEnemyPos = null;
+                    enemyPanel.classList.remove('editing');
+                }
+            }
+            map[y][x] = currentTile;
+            updateOutput();
+        }
+    }
+    
+    function updateOutput() {
+        const data = { map: map, enemies: enemyData, version: "0.3b" };
+        levelOut.value = JSON.stringify(data, null, 2);
     }
 
     document.querySelectorAll('.tile-opt').forEach(opt => opt.onclick = () => {
         document.querySelector('.tile-opt.active').classList.remove('active');
-        opt.classList.add('active'); currentTile = opt.dataset.id;
+        opt.classList.add('active'); 
+        currentTile = opt.dataset.id;
+        
+        if (currentTile === 'E') {
+            enemyPanel.classList.add('visible');
+        } else {
+            if (!selectedEnemyPos) enemyPanel.classList.remove('visible');
+        }
     });
 
     playBtn.onclick = togglePlay;
-    window.onkeydown = (e) => { inputs[e.code] = true; if(e.code==='Enter') togglePlay(); };
+    window.onkeydown = (e) => { inputs[e.code] = true; if(e.code==='Enter' && e.target.tagName !== 'SELECT') togglePlay(); };
     window.onkeyup = (e) => inputs[e.code] = false;
-    levelOut.value = map.map(r => r.join('')).join('\n');
+    
+    updateOutput();
     requestAnimationFrame(loop);
 </script>
 </body>
