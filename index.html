@@ -2,7 +2,7 @@
 <html lang="fr"><head>
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <meta charset="UTF-8">
-    <title>Platformer Studio v0.5b - Multi-Level Progression</title>
+    <title>Platformer Studio v0.6</title>
     <style>
         :root { --accent: #ff0055; --bg: #0d0d12; --panel: #16161e; --success: #00ff88; --selected: #ffaa00; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
@@ -440,7 +440,7 @@
 <div id="editor-ui">
     <div class="section">
         <h2 style="margin:0">Platformer Studio</h2>
-        <div class="hint">2026.01.30 V0.5b (Fixed)</div>
+        <div class="hint">2026.01.30 V0.6</div>
     </div>
     
     <div class="section">
@@ -520,7 +520,7 @@
         <h2>🗂️ Gestion des niveaux</h2>
         <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
         <label style="display: block; color: var(--accent); font-weight: bold; margin-bottom: 8px; font-size: 0.9em;">NOM DU JEU</label>
-        <input type="text" id="game-project-name" value="Mon Platformer" 
+        <input type="text" id="game-project-name" value="Platformer Studio" 
                style="width: 100px; background: #000; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 5px; font-size: 1.1em; outline: none; border-left: 4px solid var(--accent);">
         </div>
         <div class="level-list" id="level-list"></div>
@@ -596,12 +596,55 @@
     let currentLevelIndex = 0;
     let playStartLevelIndex = 0;
     
-    let p = { x: 0, y: 0, vx: 0, vy: 0, w: 28, h: 36, ground: false };
+    let p = { x: 0, y: 0, vx: 0, vy: 0, w: 28, h: 36, ground: false, scaleX: 1, scaleY: 1, wasGrounded: false };
     let inputs = {};
     
     let enemyData = {};
     let activeEnemies = [];
     let selectedEnemyPos = null;
+    
+    // Système de particules
+    let particles = [];
+    
+    function createParticles(x, y, count, color, speedRange = 3) {
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * speedRange + 1;
+            particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - Math.random() * 2,
+                life: 1,
+                decay: 0.02 + Math.random() * 0.02,
+                size: 2 + Math.random() * 3,
+                color: color
+            });
+        }
+    }
+    
+    function updateParticles(dt) {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const part = particles[i];
+            part.x += part.vx * dt;
+            part.y += part.vy * dt;
+            part.vy += 0.3 * dt; // Gravité
+            part.life -= part.decay * dt;
+            
+            if (part.life <= 0) {
+                particles.splice(i, 1);
+            }
+        }
+    }
+    
+    function drawParticles() {
+        particles.forEach(part => {
+            ctx.globalAlpha = part.life;
+            ctx.fillStyle = part.color;
+            ctx.fillRect(part.x - part.size / 2, part.y - part.size / 2, part.size, part.size);
+        });
+        ctx.globalAlpha = 1;
+    }
     
     // UI refs
     const speedInput = document.getElementById('enemy-speed');
@@ -770,23 +813,28 @@
             enemy.vx = enemy.speed * enemy.dir;
             enemy.x += enemy.vx * dt;
             
+            // Vérifier collision avec les murs
             const x1 = Math.floor(enemy.x / TILE);
             const x2 = Math.floor((enemy.x + enemy.w) / TILE);
             const y1 = Math.floor(enemy.y / TILE);
             const y2 = Math.floor((enemy.y + enemy.h) / TILE);
             
-            let hit = false;
+            let hitWall = false;
             for(let yy = y1; yy <= y2; yy++) {
                 for(let xx = x1; xx <= x2; xx++) {
-                    if(map[yy] && map[yy][xx] === '#') hit = true;
+                    if(map[yy] && map[yy][xx] === '#') {
+                        hitWall = true;
+                    }
                 }
             }
             
-            if (hit) {
+            // Si collision avec mur, inverser direction et reculer
+            if (hitWall) {
                 enemy.dir *= -1;
-                enemy.x += enemy.vx * dt * 2;
+                enemy.x -= enemy.vx * dt * 2;
             }
             
+            // Vérifier les limites de la zone de patrouille
             if (enemy.x > enemy.startX + enemy.range) {
                 enemy.dir = -1;
                 enemy.x = enemy.startX + enemy.range;
@@ -857,14 +905,34 @@
         let ty = Math.floor((p.y + p.h/2) / TILE);
         if (map[ty] && map[ty][tx]) {
             let tile = map[ty][tx];
-            if (tile === '^') reset();
-            if (tile === 'C') { map[ty][tx] = '.'; score++; }
+            if (tile === '^') {
+                // Particules de mort par pic (rouge)
+                createParticles(p.x + p.w / 2, p.y + p.h / 2, 20, '#ff4757', 6);
+                setTimeout(() => reset(), 200);
+                return;
+            }
+            if (tile === 'C') { 
+                map[ty][tx] = '.'; 
+                score++;
+                // Particules de collecte de pièce
+                createParticles(tx * TILE + TILE / 2, ty * TILE + TILE / 2, 12, '#f1c40f', 5);
+            }
             if (tile === 'F') { 
                 showVictoryScreen();
             }
         }
-        if (checkEnemyPlayerCollision()) reset();
-        if (p.y > canvas.height) reset();
+        if (checkEnemyPlayerCollision()) {
+            // Particules de mort par ennemi (violet/rouge)
+            createParticles(p.x + p.w / 2, p.y + p.h / 2, 20, '#a29bfe', 6);
+            createParticles(p.x + p.w / 2, p.y + p.h / 2, 10, '#ff4757', 5);
+            setTimeout(() => reset(), 200);
+            return;
+        }
+        if (p.y > canvas.height) {
+            // Particules de chute dans le vide
+            createParticles(p.x + p.w / 2, canvas.height - 20, 15, '#888', 5);
+            setTimeout(() => reset(), 200);
+        }
     };
 
     const reset = () => {
@@ -925,15 +993,64 @@
 
             p.x += p.vx * dt;
             if (collide(p.x, p.y)) { p.x -= p.vx * dt; p.vx = 0; }
+            
+            const wasGroundedBefore = p.ground;
             p.y += p.vy * dt; p.ground = false;
             if (collide(p.x, p.y)) {
-                if(p.vy > 0) p.ground = true;
+                if(p.vy > 0) {
+                    p.ground = true;
+                    // Effet d'écrasement et particules à l'atterrissage
+                    if (!wasGroundedBefore && p.vy > 5) {
+                        p.scaleX = 1.3;
+                        p.scaleY = 0.7;
+                        // Particules d'impact au sol
+                        createParticles(p.x + p.w / 2, p.y + p.h, 8, '#888', 4);
+                    }
+                }
                 p.y -= p.vy * dt; p.vy = 0;
             }
-            if (inputs['ArrowUp'] && p.ground) p.vy = -14;
+            
+            // Effet d'étirement lors du saut
+            if (inputs['ArrowUp'] && p.ground) {
+                p.vy = -14;
+                p.scaleX = 0.8;
+                p.scaleY = 1.2;
+            }
+            
+            // Particules de chute
+            if (!p.ground && p.vy > 8) {
+                if (Math.random() < 0.3) {
+                    createParticles(p.x + p.w / 2, p.y + p.h / 2, 1, '#aaa', 1);
+                }
+            }
+            
+            // Retour progressif à la normale
+            p.scaleX += (1 - p.scaleX) * 0.2 * dt;
+            p.scaleY += (1 - p.scaleY) * 0.2 * dt;
+            
+            updateParticles(dt);
             checkTriggers();
+            
+            // Dessiner le joueur avec l'effet d'écrasement et les yeux
+            ctx.save();
+            const centerX = p.x + p.w / 2;
+            const centerY = p.y + p.h / 2;
+            ctx.translate(centerX, centerY);
+            ctx.scale(p.scaleX, p.scaleY);
+            
+            // Corps
             ctx.fillStyle = '#00ff88';
-            ctx.fillRect(p.x, p.y, p.w, p.h);
+            ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            
+            // Yeux (direction basée sur la vélocité horizontale)
+            const eyeOffsetX = p.vx > 0.5 ? 3 : (p.vx < -0.5 ? -3 : 0);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(-p.w / 2 + 6 + eyeOffsetX, -p.h / 2 + 8, 4, 4);
+            ctx.fillRect(-p.w / 2 + 18 + eyeOffsetX, -p.h / 2 + 8, 4, 4);
+            
+            ctx.restore();
+            
+            drawParticles();
         }
         
         ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; 
@@ -959,6 +1076,10 @@
             }
             
             saveCurrentLevel();
+            
+            // Désélectionner l'ennemi et cacher le panneau
+            selectedEnemyPos = null;
+            enemyPanel.classList.remove('editing', 'visible');
 
             isPlaying = true;
             playStartLevelIndex = currentLevelIndex;
@@ -1062,6 +1183,7 @@
         }
     };
 
+    // CORRECTION : Maintien du clic uniquement pour les murs et la gomme
     canvas.onmousedown = (e) => {
         if(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'TEXTAREA') {
             return;
@@ -1071,7 +1193,10 @@
             return;
         }
         
-        canvas.isDrawing = true; 
+        // Autoriser le maintien du clic uniquement pour les murs (#) et la gomme (.)
+        if (currentTile === '#' || currentTile === '.') {
+            canvas.isDrawing = true;
+        }
         handleCanvasClick(e); 
     };
     
@@ -1142,9 +1267,16 @@
                 delete enemyData[key];
                 if (selectedEnemyPos === key) {
                     selectedEnemyPos = null;
-                    enemyPanel.classList.remove('editing');
+                    enemyPanel.classList.remove('editing', 'visible');
                 }
             }
+            
+            // Si on clique avec un outil autre que l'ennemi, désélectionner
+            if (currentTile !== 'E') {
+                selectedEnemyPos = null;
+                enemyPanel.classList.remove('editing', 'visible');
+            }
+            
             map[y][x] = currentTile;
             updateOutput();
         }
@@ -1204,9 +1336,16 @@
         currentTile = opt.dataset.id;
         
         if (currentTile === 'E') {
-            enemyPanel.classList.add('visible');
+            // Afficher le panneau si l'outil ennemi est sélectionné
+            if (!selectedEnemyPos) {
+                enemyPanel.classList.add('visible');
+                enemyPanel.classList.remove('editing');
+            }
         } else {
-            if (!selectedEnemyPos) enemyPanel.classList.remove('visible');
+            // Cacher le panneau si un autre outil est sélectionné
+            if (!selectedEnemyPos) {
+                enemyPanel.classList.remove('visible', 'editing');
+            }
         }
     });
 
@@ -1227,7 +1366,7 @@
         map = JSON.parse(JSON.stringify(level.map));
         enemyData = JSON.parse(JSON.stringify(level.enemies));
         selectedEnemyPos = null;
-        enemyPanel.classList.remove('editing');
+        enemyPanel.classList.remove('editing', 'visible');
         updateOutput();
         updateProgressUI();
     }
@@ -1245,7 +1384,7 @@
             const div = document.createElement('div');
             div.className = 'level-item' + (index === currentLevelIndex ? ' active' : '');
             
-            let enemyCount = Object.keys(level.enemies).length;
+            let enemyCount = Object.keys(level.enemies || {}).length;
             let hasPlayer = JSON.stringify(level.map).includes('"P"');
             let hasFlag = JSON.stringify(level.map).includes('"F"');
             
@@ -1254,18 +1393,19 @@
                     <div>
                         <div class="level-item-name" style="display: flex; align-items: center; gap: 8px;">
                             <span class="level-name-text">${level.name}</span>
-                            <button class="rename-level-btn" onclick="renameLevel(${index})" style="background: none; border: none; color: #888; cursor: pointer; font-size: 0.9em; padding: 2px 6px; transition: 0.2s;" title="Renommer">✏️</button>
+                            <button class="rename-level-btn" style="background: none; border: none; color: #888; cursor: pointer; font-size: 0.9em; padding: 2px 6px; transition: 0.2s;" title="Renommer">✏️</button>
                         </div>
                         <div class="level-item-stats">👾 ${enemyCount} | ${hasPlayer ? '🏃' : '❌'} | ${hasFlag ? '🚩' : '❌'}</div>
                     </div>
                 </div>
                 <div class="level-item-actions">
-                    ${index > 0 ? '<button class="level-action-btn" onclick="moveLevelUp(' + index + ')">⬆️</button>' : ''}
-                    ${index < levels.length - 1 ? '<button class="level-action-btn" onclick="moveLevelDown(' + index + ')">⬇️</button>' : ''}
-                    <button class="level-action-btn danger" onclick="deleteLevel(' + index + ')">🗑️</button>
+                    ${index > 0 ? '<button class="level-action-btn move-up-btn">⬆️</button>' : ''}
+                    ${index < levels.length - 1 ? '<button class="level-action-btn move-down-btn">⬇️</button>' : ''}
+                    <button class="level-action-btn danger delete-btn">🗑️</button>
                 </div>
             `;
             
+            // Event listener pour sélectionner le niveau
             div.querySelector('.level-item-info').onclick = () => {
                 if (index !== currentLevelIndex) {
                     saveCurrentLevel();
@@ -1274,6 +1414,42 @@
                     renderLevelList();
                 }
             };
+            
+            // Event listener pour renommer
+            const renameBtn = div.querySelector('.rename-level-btn');
+            if (renameBtn) {
+                renameBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    renameLevel(index);
+                };
+            }
+            
+            // Event listener pour déplacer vers le haut
+            const moveUpBtn = div.querySelector('.move-up-btn');
+            if (moveUpBtn) {
+                moveUpBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    moveLevelUp(index);
+                };
+            }
+            
+            // Event listener pour déplacer vers le bas
+            const moveDownBtn = div.querySelector('.move-down-btn');
+            if (moveDownBtn) {
+                moveDownBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    moveLevelDown(index);
+                };
+            }
+            
+            // Event listener pour supprimer
+            const deleteBtn = div.querySelector('.delete-btn');
+            if (deleteBtn) {
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteLevel(index);
+                };
+            }
             
             levelListEl.appendChild(div);
         });
@@ -1418,9 +1594,52 @@
         let score = 0, timer = "0.00", startTime = 0, totalCoins = 0;
         let lastTime = performance.now();
         let completedLevelsCount = 0;
-        let p = { x: 0, y: 0, vx: 0, vy: 0, w: 28, h: 36, ground: false };
+        let p = { x: 0, y: 0, vx: 0, vy: 0, w: 28, h: 36, ground: false, scaleX: 1, scaleY: 1 };
         let inputs = {};
         let activeEnemies = [];
+        
+        // Système de particules
+        let particles = [];
+        
+        function createParticles(x, y, count, color, speedRange = 3) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * speedRange + 1;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - Math.random() * 2,
+                    life: 1,
+                    decay: 0.02 + Math.random() * 0.02,
+                    size: 2 + Math.random() * 3,
+                    color: color
+                });
+            }
+        }
+        
+        function updateParticles(dt) {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const part = particles[i];
+                part.x += part.vx * dt;
+                part.y += part.vy * dt;
+                part.vy += 0.3 * dt;
+                part.life -= part.decay * dt;
+                
+                if (part.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+        
+        function drawParticles() {
+            particles.forEach(part => {
+                ctx.globalAlpha = part.life;
+                ctx.fillStyle = part.color;
+                ctx.fillRect(part.x - part.size / 2, part.y - part.size / 2, part.size, part.size);
+            });
+            ctx.globalAlpha = 1;
+        }
 
         function loadLevel() {
             const level = levels[currentLevelIndex];
@@ -1471,13 +1690,37 @@
                 p.vx *= Math.pow(0.8, dt); p.vy += 0.8 * dt;
                 p.x += p.vx * dt;
                 if (collide(p.x, p.y)) { p.x -= p.vx * dt; p.vx = 0; }
+                
+                const wasGroundedBefore = p.ground;
                 p.y += p.vy * dt; p.ground = false;
                 if (collide(p.x, p.y)) {
-                    if(p.vy > 0) p.ground = true;
+                    if(p.vy > 0) {
+                        p.ground = true;
+                        if (!wasGroundedBefore && p.vy > 5) {
+                            p.scaleX = 1.3;
+                            p.scaleY = 0.7;
+                            createParticles(p.x + p.w / 2, p.y + p.h, 8, '#888', 4);
+                        }
+                    }
                     p.y -= p.vy * dt; p.vy = 0;
                 }
-                if (inputs['ArrowUp'] && p.ground) p.vy = -14;
                 
+                if (inputs['ArrowUp'] && p.ground) {
+                    p.vy = -14;
+                    p.scaleX = 0.8;
+                    p.scaleY = 1.2;
+                }
+                
+                if (!p.ground && p.vy > 8) {
+                    if (Math.random() < 0.3) {
+                        createParticles(p.x + p.w / 2, p.y + p.h / 2, 1, '#aaa', 1);
+                    }
+                }
+                
+                p.scaleX += (1 - p.scaleX) * 0.2 * dt;
+                p.scaleY += (1 - p.scaleY) * 0.2 * dt;
+                
+                updateParticles(dt);
                 updateEnemies(dt);
                 checkTriggers();
             }
@@ -1494,10 +1737,33 @@
             activeEnemies.forEach(enemy => {
                 ctx.fillStyle = enemy.color;
                 ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
+                ctx.fillStyle = '#000';
+                const eyeOffset = enemy.dir > 0 ? 4 : -4;
+                ctx.fillRect(enemy.x + 6 + eyeOffset, enemy.y + 6, 4, 4);
+                ctx.fillRect(enemy.x + 14 + eyeOffset, enemy.y + 6, 4, 4);
+                ctx.fillStyle = '#666';
+                const legOffset = Math.sin(Date.now() / 100) * 3;
+                ctx.fillRect(enemy.x + 6, enemy.y + 24 + legOffset, 4, 6);
+                ctx.fillRect(enemy.x + 14, enemy.y + 24 - legOffset, 4, 6);
             });
 
+            ctx.save();
+            const centerX = p.x + p.w / 2;
+            const centerY = p.y + p.h / 2;
+            ctx.translate(centerX, centerY);
+            ctx.scale(p.scaleX, p.scaleY);
+            
             ctx.fillStyle = '#00ff88';
-            ctx.fillRect(p.x, p.y, p.w, p.h);
+            ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            
+            const eyeOffsetX = p.vx > 0.5 ? 3 : (p.vx < -0.5 ? -3 : 0);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(-p.w / 2 + 6 + eyeOffsetX, -p.h / 2 + 8, 4, 4);
+            ctx.fillRect(-p.w / 2 + 18 + eyeOffsetX, -p.h / 2 + 8, 4, 4);
+            
+            ctx.restore();
+            
+            drawParticles();
 
             ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
             ctx.fillRect(0, 0, canvas.width, 40);
@@ -1520,20 +1786,68 @@
             activeEnemies.forEach(enemy => {
                 enemy.vx = enemy.speed * enemy.dir;
                 enemy.x += enemy.vx * dt;
-                if (enemy.x > enemy.startX + enemy.range || enemy.x < enemy.startX - enemy.range) enemy.dir *= -1;
+                
+                // Vérifier collision avec les murs
+                const x1 = Math.floor(enemy.x / TILE);
+                const x2 = Math.floor((enemy.x + enemy.w) / TILE);
+                const y1 = Math.floor(enemy.y / TILE);
+                const y2 = Math.floor((enemy.y + enemy.h) / TILE);
+                
+                let hitWall = false;
+                for(let yy = y1; yy <= y2; yy++) {
+                    for(let xx = x1; xx <= x2; xx++) {
+                        if(map[yy] && map[yy][xx] === '#') {
+                            hitWall = true;
+                        }
+                    }
+                }
+                
+                // Si collision avec mur, inverser direction et reculer
+                if (hitWall) {
+                    enemy.dir *= -1;
+                    enemy.x -= enemy.vx * dt * 2;
+                }
+                
+                // Vérifier les limites de la zone de patrouille
+                if (enemy.x > enemy.startX + enemy.range) {
+                    enemy.dir = -1;
+                    enemy.x = enemy.startX + enemy.range;
+                } else if (enemy.x < enemy.startX - enemy.range) {
+                    enemy.dir = 1;
+                    enemy.x = enemy.startX - enemy.range;
+                }
             });
         };
 
         const checkTriggers = () => {
             let tx = Math.floor((p.x + p.w/2) / TILE), ty = Math.floor((p.y + p.h/2) / TILE);
             if (map[ty] && map[ty][tx]) {
-                if (map[ty][tx] === '^') reset();
-                if (map[ty][tx] === 'C') { map[ty][tx] = '.'; score++; }
-                if (map[ty][tx] === 'F') showVictoryScreen();
+                if (map[ty][tx] === '^') {
+                    createParticles(p.x + p.w / 2, p.y + p.h / 2, 20, '#ff4757', 6);
+                    setTimeout(() => reset(), 200);
+                    return;
+                }
+                if (map[ty][tx] === 'C') { 
+                    map[ty][tx] = '.'; 
+                    score++;
+                    createParticles(tx * TILE + TILE / 2, ty * TILE + TILE / 2, 12, '#f1c40f', 5);
+                }
+                if (map[ty][tx] === 'F') {
+                    showVictoryScreen();
+                }
             }
-            if (p.y > canvas.height) reset();
+            if (p.y > canvas.height) {
+                createParticles(p.x + p.w / 2, canvas.height - 20, 15, '#888', 5);
+                setTimeout(() => reset(), 200);
+                return;
+            }
             for(let e of activeEnemies) {
-                if (p.x < e.x + e.w && p.x + p.w > e.x && p.y < e.y + e.h && p.y + p.h > e.y) reset();
+                if (p.x < e.x + e.w && p.x + p.w > e.x && p.y < e.y + e.h && p.y + p.h > e.y) {
+                    createParticles(p.x + p.w / 2, p.y + p.h / 2, 20, '#a29bfe', 6);
+                    createParticles(p.x + p.w / 2, p.y + p.h / 2, 10, '#ff4757', 5);
+                    setTimeout(() => reset(), 200);
+                    return;
+                }
             }
         };
 
@@ -1604,9 +1918,15 @@
     showNotification("Le Projet nommé : '" + projectName + "' a été exporté avec succès !", "success");
 }
     
-    window.deleteLevel = (index) => {
+    function deleteLevel(index) {
         if (levels.length === 1) {
             showNotification("Impossible de supprimer le dernier niveau !","warning");
+            return;
+        }
+        
+        // Vérifier que l'index est valide
+        if (index < 0 || index >= levels.length) {
+            showNotification("Erreur : niveau introuvable","warning");
             return;
         }
         
@@ -1614,20 +1934,32 @@
             return;
         }
         
+        // Sauvegarder l'index actuel avant suppression
+        const wasCurrentLevel = (currentLevelIndex === index);
+        
         levels.splice(index, 1);
         
+        // Ajuster l'index actuel
         if (currentLevelIndex >= levels.length) {
             currentLevelIndex = levels.length - 1;
+        } else if (currentLevelIndex > index) {
+            currentLevelIndex--;
         }
-        if (currentLevelIndex === index) {
+        
+        // Charger le niveau actuel si on a supprimé le niveau en cours
+        if (wasCurrentLevel) {
             loadCurrentLevel();
         }
         
         renderLevelList();
-        updateProgressUI(); // Mettre à jour après suppression
-    };
+        updateProgressUI();
+    }
     
-    window.renameLevel = (index) => {
+    function renameLevel(index) {
+        if (index < 0 || index >= levels.length) {
+            return;
+        }
+        
         const currentName = levels[index].name;
         const newName = prompt("Nouveau nom du niveau :", currentName);
         
@@ -1636,10 +1968,10 @@
             renderLevelList();
             updateProgressUI();
         }
-    };
+    }
     
-    window.moveLevelUp = (index) => {
-        if (index === 0) return;
+    function moveLevelUp(index) {
+        if (index === 0 || index >= levels.length) return;
         
         [levels[index - 1], levels[index]] = [levels[index], levels[index - 1]];
         
@@ -1650,10 +1982,10 @@
         }
         
         renderLevelList();
-    };
+    }
     
-    window.moveLevelDown = (index) => {
-        if (index === levels.length - 1) return;
+    function moveLevelDown(index) {
+        if (index === levels.length - 1 || index < 0) return;
         
         [levels[index], levels[index + 1]] = [levels[index + 1], levels[index]];
         
@@ -1664,7 +1996,7 @@
         }
         
         renderLevelList();
-    };
+    }
     
     loadCurrentLevel();
     
